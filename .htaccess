@@ -25,9 +25,15 @@ AddDefaultCharset UTF-8
 <FilesMatch "^(db|debug|tmp_read_odt|rimuovi_barbara|prove_orari)\.php$">
     Require all denied
 </FilesMatch>
-<FilesMatch "\.(sql|odt|md|txt|log|dist|example)$">
+<FilesMatch "\.(sql|odt|md|txt|log|dist|example|ya?ml|ini|lock)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "^(Dockerfile|\.dockerignore)$">
     Require all denied
 </FilesMatch>
 
 # Blocca l'accesso diretto alle cartelle di codice/config
-RedirectMatch 403 ^/(config|controllers|models|services|scripts|sql|views)/.*$
+RedirectMatch 403 ^/(config|controllers|models|services|scripts|sql|views|db)/.*$
+
+# Blocca qualsiasi dotfile (.git, .env, .ssh, .vscode, ...) tranne .well-known
+RedirectMatch 403 (?i)/\.(?!well-known)

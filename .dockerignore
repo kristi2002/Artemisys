@@ -15,5 +15,14 @@ testo.txt
 .env.*
 !.env.example
 
-# Dump SQL (si importano a mano, non servono nell'immagine)
-sql/*.sql
+# File di build/deploy: non devono stare nella webroot dell'app.
+# (NB: i Dockerfile restano leggibili dal builder; qui li escludiamo
+#  solo dal "COPY ." dell'immagine app.)
+Dockerfile
+db
+docker-compose.yaml
+docker-compose.yml
+.dockerignore
+
+# NB: sql/ NON è escluso: serve al build dell'immagine db (db/Dockerfile).
+# Nell'immagine app i .sql restano comunque bloccati da .htaccess (403).
