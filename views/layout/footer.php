@@ -1,3 +1,4 @@
+    </div><!-- /pjax-main -->
     </div><!-- /content-wrapper -->
 </div><!-- /wrapper -->
 

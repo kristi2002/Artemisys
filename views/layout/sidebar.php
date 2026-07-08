@@ -258,6 +258,9 @@ $ruoloLabel = match($userRuolo) {
             <div></div>
         </nav>
 
+        <!-- Area sostituita via PJAX (navigazione senza refresh) -->
+        <div id="pjax-main">
+
         <!-- Breadcrumb -->
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb mb-0">
