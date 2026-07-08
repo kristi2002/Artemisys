@@ -1,0 +1,33 @@
+Options -Indexes +FollowSymLinks
+
+RewriteEngine On
+RewriteBase /
+
+# Forza HTTPS (commentare se non hai SSL attivo)
+# RewriteCond %{HTTPS} !=on
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Non riscrivere file/directory che esistono davvero
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-l
+
+# Tutto il resto a index.php
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
+
+# Se l'utente clicca direttamente su /artemisys/ senza path, mandalo a auth/login
+DirectoryIndex index.php
+
+# UTF-8 per i file di testo
+AddDefaultCharset UTF-8
+
+# Blocca l'accesso diretto a file sensibili e script di servizio
+<FilesMatch "^(db|debug|tmp_read_odt|rimuovi_barbara|prove_orari)\.php$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "\.(sql|odt|md|txt|log|dist|example)$">
+    Require all denied
+</FilesMatch>
+
+# Blocca l'accesso diretto alle cartelle di codice/config
+RedirectMatch 403 ^/(config|controllers|models|services|scripts|sql|views)/.*$

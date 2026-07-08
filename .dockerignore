@@ -1,0 +1,19 @@
+# Script di servizio / debug — NON devono finire in produzione
+db.php
+debug.php
+tmp_read_odt.php
+rimuovi_barbara.php
+prove_orari.php
+testo.txt
+
+# File di sviluppo
+.git
+.gitignore
+.claude
+*.md
+.env
+.env.*
+!.env.example
+
+# Dump SQL (si importano a mano, non servono nell'immagine)
+sql/*.sql

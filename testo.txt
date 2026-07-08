@@ -1,0 +1,114 @@
+Devo creare uno script PHP di import per popolare la tabella `lezioni` 
+(e la relativa `lezione_insegnanti`) del database Statify a partire da un 
+file Excel.
+
+## Contesto
+
+Il file Excel di input è `Lezioni_I_ANNO_2025-2026_import.xlsx` (path: 
+indicalo tu in base a dove lo metto) e contiene 138 lezioni del primo anno 
+del Corso Parrucchiere, anno scolastico 2025/2026.
+
+Foglio "lezioni" con queste colonne:
+- anno_scolastico (es. "2025/2026")
+- percorso (es. "Corso Parrucchiere")
+- anno_corso (1, 2 o 3)
+- materia_nome (solo riferimento leggibile, NON usare per il lookup)
+- materia_codice (es. "TRI", "CHI", "LAE"... può essere vuoto)
+- data (formato YYYY-MM-DD)
+- ora_inizio (HH:MM — solo riferimento, non c'è campo nel DB)
+- durata_minuti (int)
+- titolo (string, obbligatorio in DB)
+- insegnanti (cognome, uno o più separati da ";")
+- online (0 o 1)
+- argomento (può essere vuoto)
+- note (può essere vuoto)
+
+C'è anche un foglio "legenda" che spiega il mapping; ignoralo, è solo 
+documentazione.
+
+## Schema DB rilevante
+
+```sql
+CREATE TABLE lezioni (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  percorso_anno_materia_id INT,
+  titolo VARCHAR(255) NOT NULL,
+  data DATE,
+  durata_minuti SMALLINT,
+  argomento TEXT,
+  note TEXT,
+  online TINYINT(1) NOT NULL DEFAULT 0,
+  link_online VARCHAR(500),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE lezione_insegnanti (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  lezione_id INT NOT NULL,
+  insegnante_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+E queste tabelle di lookup (già popolate):
+- `anni_scolastici(id, anno)` — es. (1, "2025/2026")
+- `percorsi_accademici(id, nome, anno_scolastico_id)` — es. (1, "Corso Parrucchiere", 1)
+- `percorso_anni(id, percorso_id, numero)` — es. (1, 1, 1) per "Corso Parrucchiere - 1° anno"
+- `percorso_anno_materie(id, anno_id, materia_id, insegnante_id, ordine)` — collega anno+materia
+- `materie(id, codice, nome)` — es. (1, "TRI", "Tricologia")
+- `insegnanti(id, user_id, nome, cognome, email, ...)`
+
+## Cosa deve fare lo script
+
+1. **Legge l'Excel** con PhpSpreadsheet (foglio "lezioni", salta header)
+2. **Per ogni riga**, fa questi lookup in cascata:
+   a. `anno_scolastico` → `anni_scolastici.id`
+   b. `anno_scolastico.id` + `percorso` → `percorsi_accademici.id`
+   c. `percorsi_accademici.id` + `anno_corso` → `percorso_anni.id` (questo è "anno_id")
+   d. `anno_id` + `materia_codice` → `percorso_anno_materie.id` (= `lezioni.percorso_anno_materia_id`)
+3. **INSERT in lezioni** con: percorso_anno_materia_id, titolo, data, durata_minuti, online, argomento, note
+4. **Per ogni insegnante** nella colonna `insegnanti` (split su ";", trim):
+   - Lookup `insegnanti.cognome` LIKE '%cognome%' (case-insensitive)
+   - Se trovato: INSERT in `lezione_insegnanti`
+   - Se NON trovato o ambiguo (>1 match): log warning e prosegui
+5. **Tutto in transazione**: se una riga fallisce per lookup mancanti, 
+   non rollback dell'intera transazione ma:
+   - log errore con numero riga Excel + motivo
+   - skip della riga
+   - continua con le successive
+6. **Modalità dry-run**: flag `--dry-run` che fa tutti i lookup e mostra 
+   cosa farebbe, ma non scrive nel DB
+7. **Output finale**: report sintetico con
+   - N righe lette
+   - N inserite
+   - N saltate (e perché)
+   - N insegnanti collegati / non trovati
+
+## Requisiti tecnici
+
+- PHP 8+, PDO con MySQL
+- Composer per PhpSpreadsheet (`composer require phpoffice/phpspreadsheet`)
+- Credenziali DB da file `.env` o costanti in cima allo script (non hardcoded inline)
+- CLI script: `php import_lezioni.php <path-excel> [--dry-run]`
+- Idempotenza: prima di inserire, controlla se esiste già una lezione con 
+  stessi (percorso_anno_materia_id, data, durata_minuti, titolo); se sì, salta 
+  con warning "già presente"
+
+## Cose da NON fare
+
+- Non creare materie, percorsi, insegnanti se mancano nei lookup: solo 
+  segnalare e skippare
+- Non hashare/modificare password o toccare altre tabelle
+- Non assumere mapping di materie non presenti nel codice: usa solo il 
+  campo `materia_codice` dell'Excel
+
+## Cosa fare prima di scrivere codice
+
+1. Chiedimi le credenziali DB se non le hai
+2. Mostrami in chat la lista finale dei lookup che farai (es. "cercherò 
+   materia con codice 'TRI'") basata su una scansione rapida dell'Excel, 
+   così verifico che sia coerente prima di lanciare l'import
+3. Avvisami se trovi righe con `materia_codice` vuoto (so che ce ne sono ~64 
+   su 138, dovrò decidere caso per caso)
+
+Procedi.

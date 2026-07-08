@@ -1,0 +1,47 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Coolify inietta questi valori (vedi tab "Environment Variables")
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-artemisys}
+      - DB_USER=${DB_USER:-artemisys}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - APP_DEBUG=${APP_DEBUG:-0}
+    ports:
+      # Coolify/Traefik instrada il dominio verso la porta 80 del container
+      - "80"
+    volumes:
+      - uploads_public:/var/www/html/public/uploads
+      - uploads_insegnanti:/var/www/html/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=${DB_NAME:-artemisys}
+      - MYSQL_USER=${DB_USER:-artemisys}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      # Importa lo schema automaticamente SOLO al primo avvio (db vuoto)
+      - ./sql/artemisys.sql:/docker-entrypoint-initdb.d/01-artemisys.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  db_data:
+  uploads_public:
+  uploads_insegnanti:
