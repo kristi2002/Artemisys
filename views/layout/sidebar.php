@@ -107,11 +107,30 @@ $ruoloLabel = match($userRuolo) {
                         <span>Bacheca</span>
                     </a>
                 </li>
-                <li>
-                    <a href="<?= BASE_URL ?>percorsi" class="<?= $page === 'percorsi' ? 'active' : '' ?>">
+                <?php $percStato = $_GET['stato'] ?? ''; $isPerc = ($page === 'percorsi'); ?>
+                <li class="has-submenu <?= $isPerc ? 'open' : '' ?>">
+                    <a href="<?= BASE_URL ?>percorsi" class="submenu-toggle <?= $isPerc ? 'active' : '' ?>">
                         <i class="fas fa-route"></i>
                         <span>Percorsi Accademici</span>
+                        <i class="fas fa-chevron-down submenu-arrow"></i>
                     </a>
+                    <ul class="submenu">
+                        <li>
+                            <a href="<?= BASE_URL ?>percorsi?stato=attivi" class="<?= ($isPerc && $percStato === 'attivi') ? 'active' : '' ?>">
+                                <i class="fas fa-circle-play"></i><span>Percorsi attivi</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="<?= BASE_URL ?>percorsi?stato=passati" class="<?= ($isPerc && $percStato === 'passati') ? 'active' : '' ?>">
+                                <i class="fas fa-clock-rotate-left"></i><span>Percorsi passati</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="<?= BASE_URL ?>percorsi/create" class="<?= ($pageTitle ?? '') === 'Crea percorso' ? 'active' : '' ?>">
+                                <i class="fas fa-plus"></i><span>Crea percorso</span>
+                            </a>
+                        </li>
+                    </ul>
                 </li>
                 <li>
                     <a href="<?= BASE_URL ?>lezioni" class="<?= $page === 'lezioni' ? 'active' : '' ?>">

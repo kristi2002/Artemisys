@@ -17,6 +17,11 @@ for ($i = 1; $i <= 10; $i++) {
     <h4 class="mb-0 fw-bold" style="color:#0c1a3a;">
         <?= htmlspecialchars($percorso['nome']) ?>
     </h4>
+    <?php if (!empty($percorso['codice_corso'])): ?>
+        <span class="badge ms-1" style="background:#eef2ff;color:#1e40af;font-family:'Segoe UI',monospace;font-weight:700;letter-spacing:.5px;font-size:0.8rem;">
+            <?= htmlspecialchars($percorso['codice_corso']) ?>
+        </span>
+    <?php endif; ?>
     <span class="badge ms-1" style="background:#e8eef8;color:#1e40af;font-size:0.8rem;">
         A.S. <?= htmlspecialchars($percorso['anno_label']) ?>
     </span>
@@ -59,6 +64,8 @@ for ($i = 1; $i <= 10; $i++) {
                 </div>';
             };
             ?>
+
+            <?= $infoBlock('Codice corso', $percorso['codice_corso'] ?? null, 'fa-hashtag') ?>
 
             <?= $infoBlock('Anno scolastico', $percorso['anno_label'] ?? null, 'fa-calendar-alt') ?>
 

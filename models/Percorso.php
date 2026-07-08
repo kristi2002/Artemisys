@@ -12,11 +12,14 @@ class Percorso {
             CREATE TABLE IF NOT EXISTS percorsi_accademici (
                 id                 INT AUTO_INCREMENT PRIMARY KEY,
                 nome               VARCHAR(200) NOT NULL,
+                codice_corso       VARCHAR(50) NULL,
                 anno_scolastico_id INT NOT NULL,
                 descrizione        TEXT NULL,
                 created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB
         ");
+        // Auto-migrazione per installazioni esistenti (idempotente su MySQL/MariaDB)
+        $this->ensureColumn('percorsi_accademici', 'codice_corso', 'codice_corso VARCHAR(50) NULL AFTER nome');
         $this->db->exec("
             CREATE TABLE IF NOT EXISTS percorso_anni (
                 id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -38,21 +41,73 @@ class Percorso {
         ");
     }
 
-    // ── Tutti i percorsi con anno scolastico ────────────────────────────────
-    public function getAll(): array {
-        $rows = $this->db->query("
-            SELECT p.*, a.anno AS anno_label,
-                   s.nome AS sede_nome, s.via AS sede_via, s.comune AS sede_comune, s.telefono AS sede_telefono
-            FROM percorsi_accademici p
-            LEFT JOIN anni_scolastici a ON a.id = p.anno_scolastico_id
-            LEFT JOIN sedi s ON s.id = p.sede_id
-            ORDER BY a.anno DESC, p.nome ASC
-        ")->fetchAll();
+    // ── Aggiunge una colonna solo se non esiste già (MySQL 8 + MariaDB) ──────
+    private function ensureColumn(string $table, string $column, string $definition): void {
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?"
+        );
+        $stmt->execute([$table, $column]);
+        if (!(int)$stmt->fetchColumn()) {
+            $this->db->exec("ALTER TABLE `{$table}` ADD COLUMN {$definition}");
+        }
+    }
+
+    // ── Tutti i percorsi con anno scolastico (con filtri opzionali) ─────────
+    public function getAll(array $filters = []): array {
+        $where  = [];
+        $params = [];
+
+        if (!empty($filters['q'])) {
+            $where[]  = "(p.nome LIKE ? OR p.codice_corso LIKE ? OR p.descrizione LIKE ?)";
+            $like     = '%' . $filters['q'] . '%';
+            $params[] = $like; $params[] = $like; $params[] = $like;
+        }
+        if (!empty($filters['anno_scolastico_id'])) {
+            $where[]  = "p.anno_scolastico_id = ?";
+            $params[] = (int)$filters['anno_scolastico_id'];
+        }
+        if (!empty($filters['sede_id'])) {
+            $where[]  = "p.sede_id = ?";
+            $params[] = (int)$filters['sede_id'];
+        }
+        if (($filters['stato'] ?? '') === 'attivi') {
+            $where[] = "a.attivo = 1";
+        } elseif (($filters['stato'] ?? '') === 'passati') {
+            $where[] = "(a.attivo = 0 OR a.attivo IS NULL)";
+        }
+
+        $sql = "SELECT p.*, a.anno AS anno_label, a.attivo AS anno_attivo,
+                       s.nome AS sede_nome, s.via AS sede_via, s.comune AS sede_comune, s.telefono AS sede_telefono
+                FROM percorsi_accademici p
+                LEFT JOIN anni_scolastici a ON a.id = p.anno_scolastico_id
+                LEFT JOIN sedi s ON s.id = p.sede_id";
+        if ($where) {
+            $sql .= " WHERE " . implode(' AND ', $where);
+        }
+        $sql .= " ORDER BY a.anno DESC, p.nome ASC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
 
         foreach ($rows as &$row) {
             $row['anni'] = $this->getAnni((int)$row['id']);
         }
         return $rows;
+    }
+
+    // ── Conteggi per le stat chips (totale / attivi / passati) ──────────────
+    public function counts(): array {
+        $row = $this->db->query("
+            SELECT COUNT(*) AS totale,
+                   SUM(CASE WHEN a.attivo = 1 THEN 1 ELSE 0 END) AS attivi
+            FROM percorsi_accademici p
+            LEFT JOIN anni_scolastici a ON a.id = p.anno_scolastico_id
+        ")->fetch();
+        $tot = (int)($row['totale'] ?? 0);
+        $att = (int)($row['attivi'] ?? 0);
+        return ['totale' => $tot, 'attivi' => $att, 'passati' => $tot - $att];
     }
 
     // ── Singolo percorso ─────────────────────────────────────────────────────
@@ -162,6 +217,7 @@ class Percorso {
         $this->db->prepare("
             UPDATE percorsi_accademici
             SET nome               = ?,
+                codice_corso       = ?,
                 anno_scolastico_id = ?,
                 sede_id            = ?,
                 descrizione        = ?,
@@ -170,6 +226,7 @@ class Percorso {
             WHERE id = ?
         ")->execute([
             $data['nome'],
+            !empty($data['codice_corso'])     ? $data['codice_corso']     : null,
             $data['anno_scolastico_id'],
             !empty($data['sede_id'])          ? (int)$data['sede_id']     : null,
             !empty($data['descrizione'])      ? $data['descrizione']      : null,
@@ -182,10 +239,11 @@ class Percorso {
     // ── Crea percorso ────────────────────────────────────────────────────────
     public function create(array $data): int {
         $this->db->prepare("
-            INSERT INTO percorsi_accademici (nome, anno_scolastico_id, descrizione, sede_id, data_inizio_anno, data_fine_anno)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO percorsi_accademici (nome, codice_corso, anno_scolastico_id, descrizione, sede_id, data_inizio_anno, data_fine_anno)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ")->execute([
             $data['nome'],
+            !empty($data['codice_corso'])     ? $data['codice_corso']     : null,
             $data['anno_scolastico_id'],
             !empty($data['descrizione'])      ? $data['descrizione']      : null,
             !empty($data['sede_id'])          ? (int)$data['sede_id']     : null,

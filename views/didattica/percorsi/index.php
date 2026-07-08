@@ -1,15 +1,31 @@
 <?php
 $ordinali = [1=>'1° Anno',2=>'2° Anno',3=>'3° Anno',4=>'4° Anno',5=>'5° Anno',
              6=>'6° Anno',7=>'7° Anno',8=>'8° Anno',9=>'9° Anno',10=>'10° Anno'];
+
+$stato = $filtri['stato'] ?? '';
+// Costruisce l'URL della segmented mantenendo gli altri filtri
+$segUrl = function(string $s) use ($filtri) {
+    $q = array_filter([
+        'q'     => $filtri['q'] ?? '',
+        'anno'  => $filtri['anno_scolastico_id'] ?: '',
+        'sede'  => $filtri['sede_id'] ?: '',
+        'stato' => $s,
+    ], fn($v) => $v !== '' && $v !== 0);
+    return BASE_URL . 'percorsi' . ($q ? '?' . http_build_query($q) : '');
+};
 ?>
 
-<div class="d-flex align-items-center justify-content-between mb-4">
+<!-- Header -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <h4 class="mb-0 fw-bold" style="color:#0c1a3a;">
-        <i class="fas fa-route me-2" style="color:#1e40af;"></i>Percorsi Anni Accademici
+        <i class="fas fa-route me-2" style="color:#1e40af;"></i>Percorsi Accademici
         <span class="badge ms-2" style="background:#e8eef8;color:#1e40af;font-size:0.75rem;font-weight:600;">
             <?= count($percorsi) ?>
         </span>
     </h4>
+    <a href="<?= BASE_URL ?>percorsi/create" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Crea percorso
+    </a>
 </div>
 
 <?php if ($success): ?>
@@ -25,93 +41,82 @@ $ordinali = [1=>'1° Anno',2=>'2° Anno',3=>'3° Anno',4=>'4° Anno',5=>'5° Ann
     </div>
 <?php endif; ?>
 
-<!-- Form creazione -->
-<div class="col-lg-5 mb-4">
-    <div class="card border-0 shadow-sm">
-        <div class="card-body">
-            <h6 class="fw-semibold mb-3" style="color:#0c1a3a;">
-                <i class="fas fa-plus-circle me-2" style="color:#1e40af;"></i>Nuovo percorso
-            </h6>
-            <form method="POST" action="<?= BASE_URL ?>percorsi/store">
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Nome percorso <span class="text-danger">*</span></label>
-                    <input type="text"
-                           name="nome"
-                           class="form-control"
-                           placeholder="es. Operatore Socio Sanitario"
-                           maxlength="200"
-                           required>
+<!-- ── Card Filtri ── -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body px-4 py-3">
+        <form method="GET" action="<?= BASE_URL ?>percorsi" class="row g-3 align-items-end">
+            <!-- mantiene lo stato attivo/passato durante la ricerca -->
+            <?php if ($stato !== ''): ?>
+                <input type="hidden" name="stato" value="<?= htmlspecialchars($stato) ?>">
+            <?php endif; ?>
+
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label small fw-semibold text-muted">Cerca</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="q" class="form-control border-start-0 ps-0"
+                           placeholder="Nome o codice corso..."
+                           value="<?= htmlspecialchars($filtri['q'] ?? '') ?>">
                 </div>
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Anno scolastico <span class="text-danger">*</span></label>
-                    <?php if (empty($anni)): ?>
-                        <div class="alert alert-warning py-2 small mb-0">
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            Nessun anno scolastico disponibile.
-                            <a href="<?= BASE_URL ?>anno-scolastico">Aggiungine uno.</a>
-                        </div>
-                    <?php else: ?>
-                        <select name="anno_scolastico_id" class="form-select" required>
-                            <option value="">— Seleziona —</option>
-                            <?php foreach ($anni as $a): ?>
-                                <option value="<?= $a['id'] ?>" <?= $a['attivo'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($a['anno']) ?>
-                                    <?= $a['attivo'] ? '(attivo)' : '' ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    <?php endif; ?>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Sede</label>
-                    <?php if (empty($sedi)): ?>
-                        <div class="alert alert-warning py-2 small mb-0">
-                            <i class="fas fa-exclamation-triangle me-1"></i>
-                            Nessuna sede disponibile.
-                            <a href="<?= BASE_URL ?>sedi">Aggiungine una.</a>
-                        </div>
-                    <?php else: ?>
-                        <select name="sede_id" class="form-select">
-                            <option value="">— Seleziona sede —</option>
-                            <?php foreach ($sedi as $s): ?>
-                                <option value="<?= $s['id'] ?>">
-                                    <?= htmlspecialchars($s['nome']) ?>
-                                    <?= $s['comune'] ? '— ' . htmlspecialchars($s['comune']) : '' ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    <?php endif; ?>
-                </div>
-                <div class="row g-3 mb-3">
-                    <div class="col-6">
-                        <label class="form-label small fw-semibold">Inizio anno accademico</label>
-                        <input type="date" name="data_inizio_anno" class="form-control"
-                               value="<?= htmlspecialchars($_POST['data_inizio_anno'] ?? '') ?>">
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label small fw-semibold">Fine anno accademico</label>
-                        <input type="date" name="data_fine_anno" class="form-control"
-                               value="<?= htmlspecialchars($_POST['data_fine_anno'] ?? '') ?>">
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label small fw-semibold">Descrizione</label>
-                    <textarea name="descrizione" class="form-control" rows="2"
-                              placeholder="Note opzionali..."></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary w-100" <?= empty($anni) ? 'disabled' : '' ?>>
-                    <i class="fas fa-plus me-2"></i>Crea percorso
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label small fw-semibold text-muted">Anno scolastico</label>
+                <select name="anno" class="form-select">
+                    <option value="">Tutti gli anni</option>
+                    <?php foreach ($anni as $a): ?>
+                        <option value="<?= $a['id'] ?>" <?= ($filtri['anno_scolastico_id'] ?? 0) === (int)$a['id'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($a['anno']) ?><?= $a['attivo'] ? ' (attivo)' : '' ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label small fw-semibold text-muted">Sede</label>
+                <select name="sede" class="form-select">
+                    <option value="">Tutte le sedi</option>
+                    <?php foreach ($sedi as $s): ?>
+                        <option value="<?= $s['id'] ?>" <?= ($filtri['sede_id'] ?? 0) === (int)$s['id'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($s['nome']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="col-lg-2 col-md-6 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-filter me-1"></i>Filtra
                 </button>
-            </form>
+                <a href="<?= BASE_URL ?>percorsi" class="btn btn-outline-secondary" title="Azzera filtri">
+                    <i class="fas fa-rotate-left"></i>
+                </a>
+            </div>
+        </form>
+
+        <!-- Segmented stato -->
+        <div class="d-flex align-items-center gap-3 mt-3 pt-3 border-top flex-wrap">
+            <div class="btn-group btn-group-sm" role="group">
+                <a href="<?= $segUrl('') ?>" class="btn <?= $stato === '' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+                    Tutti <span class="badge bg-white text-dark ms-1"><?= $conteggi['totale'] ?></span>
+                </a>
+                <a href="<?= $segUrl('attivi') ?>" class="btn <?= $stato === 'attivi' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+                    Attivi <span class="badge bg-white text-dark ms-1"><?= $conteggi['attivi'] ?></span>
+                </a>
+                <a href="<?= $segUrl('passati') ?>" class="btn <?= $stato === 'passati' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+                    Passati <span class="badge bg-white text-dark ms-1"><?= $conteggi['passati'] ?></span>
+                </a>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Elenco percorsi -->
+<!-- ── Elenco percorsi ── -->
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
         <h6 class="mb-0 fw-semibold" style="color:#0c1a3a;">
-            <i class="fas fa-list me-2" style="color:#1e40af;"></i>Tutte le edizioni
+            <i class="fas fa-list me-2" style="color:#1e40af;"></i>
+            <?= $stato === 'attivi' ? 'Percorsi attivi' : ($stato === 'passati' ? 'Percorsi passati' : 'Tutte le edizioni') ?>
         </h6>
         <span class="badge" style="background:#e8eef8;color:#1e40af;">
             <?= count($percorsi) ?> <?= count($percorsi) === 1 ? 'percorso' : 'percorsi' ?>
@@ -121,8 +126,12 @@ $ordinali = [1=>'1° Anno',2=>'2° Anno',3=>'3° Anno',4=>'4° Anno',5=>'5° Ann
         <?php if (empty($percorsi)): ?>
             <div class="empty-state">
                 <div class="empty-state-icon"><i class="fas fa-route"></i></div>
-                <h5>Nessun percorso creato</h5>
-                <p>Crea il primo percorso dal form qui sopra.</p>
+                <h5>Nessun percorso trovato</h5>
+                <p>
+                    <?= ($filtri['q'] ?? '') !== '' || ($filtri['anno_scolastico_id'] ?? 0) || ($filtri['sede_id'] ?? 0) || $stato !== ''
+                        ? 'Nessun risultato per i filtri selezionati. <a href="' . BASE_URL . 'percorsi">Azzera i filtri.</a>'
+                        : 'Crea il primo percorso con il pulsante <strong>Crea percorso</strong>.' ?>
+                </p>
             </div>
         <?php else: ?>
             <table class="table table-hover mb-0">
@@ -139,16 +148,26 @@ $ordinali = [1=>'1° Anno',2=>'2° Anno',3=>'3° Anno',4=>'4° Anno',5=>'5° Ann
                     <?php foreach ($percorsi as $p): ?>
                         <tr style="cursor:pointer;" onclick="window.location='<?= BASE_URL ?>percorsi/detail/<?= $p['id'] ?>'">
                             <td class="ps-4 align-middle">
-                                <div class="fw-semibold" style="color:#0c1a3a;">
-                                    <?= htmlspecialchars($p['nome']) ?>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="fw-semibold" style="color:#0c1a3a;">
+                                        <?= htmlspecialchars($p['nome']) ?>
+                                    </span>
+                                    <?php if (!empty($p['codice_corso'])): ?>
+                                        <span class="badge" style="background:#eef2ff;color:#1e40af;font-family:'Segoe UI',monospace;font-weight:700;letter-spacing:.5px;">
+                                            <?= htmlspecialchars($p['codice_corso']) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($p['anno_attivo'])): ?>
+                                        <span class="badge bg-success-subtle text-success">Attivo</span>
+                                    <?php endif; ?>
                                 </div>
                                 <?php if ($p['descrizione']): ?>
-                                    <div class="text-muted small"><?= htmlspecialchars($p['descrizione']) ?></div>
+                                    <div class="text-muted small mt-1"><?= htmlspecialchars($p['descrizione']) ?></div>
                                 <?php endif; ?>
                             </td>
                             <td class="align-middle">
                                 <span class="badge" style="background:#e8eef8;color:#1e40af;font-weight:600;">
-                                    <?= htmlspecialchars($p['anno_label']) ?>
+                                    <?= htmlspecialchars($p['anno_label'] ?? '—') ?>
                                 </span>
                             </td>
                             <td class="align-middle" style="font-size:.85rem;">
@@ -215,9 +234,13 @@ $ordinali = [1=>'1° Anno',2=>'2° Anno',3=>'3° Anno',4=>'4° Anno',5=>'5° Ann
                 <input type="hidden" name="id" id="mod-id">
                 <div class="modal-body px-4 py-4">
                     <div class="row g-3">
-                        <div class="col-12">
+                        <div class="col-lg-8">
                             <label class="form-label small fw-semibold">Nome percorso <span class="text-danger">*</span></label>
                             <input type="text" name="nome" id="mod-nome" class="form-control" maxlength="200" required>
+                        </div>
+                        <div class="col-lg-4">
+                            <label class="form-label small fw-semibold">Codice corso</label>
+                            <input type="text" name="codice_corso" id="mod-codice" class="form-control" maxlength="50" placeholder="es. OSS-25">
                         </div>
                         <div class="col-lg-6">
                             <label class="form-label small fw-semibold">Anno scolastico <span class="text-danger">*</span></label>
@@ -297,6 +320,7 @@ $ordinali = [1=>'1° Anno',2=>'2° Anno',3=>'3° Anno',4=>'4° Anno',5=>'5° Ann
 function apriModalModificaPercorso(p) {
     document.getElementById('mod-id').value            = p.id;
     document.getElementById('mod-nome').value          = p.nome ?? '';
+    document.getElementById('mod-codice').value        = p.codice_corso ?? '';
     document.getElementById('mod-anno').value          = p.anno_scolastico_id ?? '';
     document.getElementById('mod-sede').value          = p.sede_id ?? '';
     document.getElementById('mod-data-inizio').value   = p.data_inizio_anno ?? '';

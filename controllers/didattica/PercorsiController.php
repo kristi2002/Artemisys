@@ -30,8 +30,18 @@ class PercorsiController {
 
     public function index(): void {
         $page      = 'percorsi';
-        $pageTitle = 'Percorsi Anni Accademici';
-        $percorsi  = $this->model->getAll();
+        $pageTitle = 'Percorsi Accademici';
+
+        // Filtri (dalla query string)
+        $filtri = [
+            'q'                  => trim($_GET['q'] ?? ''),
+            'anno_scolastico_id' => (int)($_GET['anno'] ?? 0),
+            'sede_id'            => (int)($_GET['sede'] ?? 0),
+            'stato'              => in_array($_GET['stato'] ?? '', ['attivi','passati'], true) ? $_GET['stato'] : '',
+        ];
+
+        $percorsi  = $this->model->getAll($filtri);
+        $conteggi  = $this->model->counts();
         $anni      = $this->annoModel->getAll();
         $sedi      = $this->sedeModel->getAll();
         $success   = $_SESSION['flash_success'] ?? null;
@@ -41,6 +51,20 @@ class PercorsiController {
         require BASE_PATH . 'views/layout/header.php';
         require BASE_PATH . 'views/layout/sidebar.php';
         require BASE_PATH . 'views/didattica/percorsi/index.php';
+        require BASE_PATH . 'views/layout/footer.php';
+    }
+
+    public function create(): void {
+        $page      = 'percorsi';
+        $pageTitle = 'Crea percorso';
+        $anni      = $this->annoModel->getAll();
+        $sedi      = $this->sedeModel->getAll();
+        $error     = $_SESSION['flash_error'] ?? null;
+        unset($_SESSION['flash_error']);
+
+        require BASE_PATH . 'views/layout/header.php';
+        require BASE_PATH . 'views/layout/sidebar.php';
+        require BASE_PATH . 'views/didattica/percorsi/create.php';
         require BASE_PATH . 'views/layout/footer.php';
     }
 
@@ -225,6 +249,7 @@ class PercorsiController {
 
         $this->model->update($id, [
             'nome'               => $nome,
+            'codice_corso'       => trim($_POST['codice_corso'] ?? ''),
             'anno_scolastico_id' => $anno,
             'sede_id'            => !empty($_POST['sede_id']) ? (int)$_POST['sede_id'] : null,
             'descrizione'        => trim($_POST['descrizione'] ?? ''),
@@ -253,6 +278,7 @@ class PercorsiController {
 
         $id = $this->model->create([
             'nome'               => $nome,
+            'codice_corso'       => trim($_POST['codice_corso'] ?? ''),
             'anno_scolastico_id' => $anno_scolastico_id,
             'descrizione'        => $_POST['descrizione'] ?? '',
             'sede_id'            => !empty($_POST['sede_id']) ? (int)$_POST['sede_id'] : null,

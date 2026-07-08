@@ -259,6 +259,7 @@ switch ($controller) {
         require_once BASE_PATH . 'controllers/didattica/PercorsiController.php';
         $ctrl = new PercorsiController();
         if ($action === 'store')                  $ctrl->store();
+        elseif ($action === 'create')            $ctrl->create();
         elseif ($action === 'detail' && $param)  $ctrl->detail((int)$param);
         elseif ($action === 'anno' && $param)    $ctrl->annoDetail((int)$param);
         elseif ($action === 'materia' && $param) $ctrl->materiaDetail((int)$param);
