@@ -338,7 +338,7 @@ $nomeAnno = $ordinali[$pam['anno_numero']] ?? $pam['anno_numero'] . '° Anno';
                                         <?php
                                         $oi = !empty($lez['ora_inizio']) ? substr($lez['ora_inizio'], 0, 5) : '';
                                         $of = !empty($lez['ora_fine'])   ? substr($lez['ora_fine'], 0, 5)   : '';
-                                        if ($oi && $of)      echo '<i class="far fa-clock me-1"></i>' . htmlspecialchars("$oi–$of");
+                                        if ($oi && $of)      echo '<i class="far fa-clock me-1"></i>' . htmlspecialchars($oi . '–' . $of);
                                         elseif ($oi)         echo '<i class="far fa-clock me-1"></i>' . htmlspecialchars($oi);
                                         else                 echo '—';
                                         ?>

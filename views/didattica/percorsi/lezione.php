@@ -105,7 +105,7 @@ $lezioneFutura = $lezione['data'] && $lezione['data'] > date('Y-m-d');
                         <td><?php
                             $oi = !empty($lezione['ora_inizio']) ? substr($lezione['ora_inizio'], 0, 5) : '';
                             $of = !empty($lezione['ora_fine'])   ? substr($lezione['ora_fine'], 0, 5)   : '';
-                            if ($oi && $of)  echo htmlspecialchars("$oi – $of");
+                            if ($oi && $of)  echo htmlspecialchars($oi . ' – ' . $of);
                             elseif ($oi)     echo htmlspecialchars($oi);
                             else             echo '—';
                         ?></td>
