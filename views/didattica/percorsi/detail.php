@@ -110,59 +110,30 @@ for ($i = 1; $i <= 10; $i++) {
     </div>
 </div>
 
-<div class="row g-4">
-
-    <!-- Aggiungi anno -->
-    <div class="col-lg-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <h6 class="fw-semibold mb-3" style="color:#0c1a3a;">
-                    <i class="fas fa-plus-circle me-2" style="color:#1e40af;"></i>Aggiungi anno di corso
-                </h6>
-                <?php if (count($numeriUsati) >= 10): ?>
-                    <p class="text-muted small">Tutti gli anni (fino al 10°) sono già stati aggiunti.</p>
-                <?php else: ?>
-                    <form method="POST" action="<?= BASE_URL ?>percorsi/add-anno">
-                        <input type="hidden" name="percorso_id" value="<?= $percorso['id'] ?>">
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">Anno di corso</label>
-                            <select name="numero" class="form-select" required>
-                                <?php for ($i = 1; $i <= 10; $i++): ?>
-                                    <?php if (!in_array($i, $numeriUsati)): ?>
-                                        <option value="<?= $i ?>" <?= $i === $prossimo ? 'selected' : '' ?>>
-                                            <?= $ordinali[$i] ?? $i . '° Anno' ?>
-                                        </option>
-                                    <?php endif; ?>
-                                <?php endfor; ?>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-plus me-2"></i>Aggiungi anno
-                        </button>
-                    </form>
-                <?php endif; ?>
-            </div>
-        </div>
-
+<!-- ── Card anni di corso ── -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-semibold" style="color:#0c1a3a;">
+            <i class="fas fa-layer-group me-2" style="color:#1e40af;"></i>Anni di corso
+            <span class="badge ms-2" style="background:#e8eef8;color:#1e40af;">
+                <?= count($percorso['anni']) ?>
+            </span>
+        </h6>
+        <?php if (count($numeriUsati) < 10): ?>
+            <button type="button" class="btn btn-sm btn-primary px-3"
+                    data-bs-toggle="modal" data-bs-target="#modalAggiungiAnno">
+                <i class="fas fa-plus me-1"></i>Aggiungi anno
+            </button>
+        <?php else: ?>
+            <span class="text-muted small fst-italic">Tutti gli anni (fino al 10°) sono già stati aggiunti</span>
+        <?php endif; ?>
     </div>
-
-    <!-- Anni di corso -->
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-bottom py-3 px-4">
-                <h6 class="mb-0 fw-semibold" style="color:#0c1a3a;">
-                    Anni di corso
-                    <span class="badge ms-2" style="background:#e8eef8;color:#1e40af;">
-                        <?= count($percorso['anni']) ?>
-                    </span>
-                </h6>
-            </div>
-            <div class="card-body p-0">
+    <div class="card-body p-0">
                 <?php if (empty($percorso['anni'])): ?>
                     <div class="empty-state">
                         <div class="empty-state-icon"><i class="fas fa-layer-group"></i></div>
                         <h5>Nessun anno aggiunto</h5>
-                        <p>Aggiungi il primo anno di corso dal pannello.</p>
+                        <p>Aggiungi il primo anno di corso con il pulsante in alto.</p>
                     </div>
                 <?php else: ?>
                     <table class="table table-hover mb-0">
@@ -205,11 +176,47 @@ for ($i = 1; $i <= 10; $i++) {
                         </tbody>
                     </table>
                 <?php endif; ?>
-            </div>
+    </div>
+</div>
+
+<?php if (count($numeriUsati) < 10): ?>
+<!-- Modal aggiungi anno di corso -->
+<div class="modal fade" id="modalAggiungiAnno" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="<?= BASE_URL ?>percorsi/add-anno">
+                <input type="hidden" name="percorso_id" value="<?= $percorso['id'] ?>">
+                <div class="modal-header border-bottom py-3 px-4" style="background:#f8fafc;">
+                    <h6 class="modal-title fw-semibold mb-0" style="color:#0c1a3a;">
+                        <i class="fas fa-plus-circle me-2" style="color:#1e40af;"></i>Aggiungi anno di corso
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body px-4 py-3">
+                    <label class="form-label small fw-semibold">Anno di corso</label>
+                    <select name="numero" class="form-select" required>
+                        <?php for ($i = 1; $i <= 10; $i++): ?>
+                            <?php if (!in_array($i, $numeriUsati)): ?>
+                                <option value="<?= $i ?>" <?= $i === $prossimo ? 'selected' : '' ?>>
+                                    <?= $ordinali[$i] ?? $i . '° Anno' ?>
+                                </option>
+                            <?php endif; ?>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+                <div class="modal-footer border-top px-4 py-3" style="background:#f8fafc;">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Annulla
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Aggiungi
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
-
 </div>
+<?php endif; ?>
 
 <!-- Modal conferma eliminazione anno di corso -->
 <div class="modal fade" id="modalEliminaAnno" tabindex="-1" aria-hidden="true">
