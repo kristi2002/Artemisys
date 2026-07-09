@@ -294,10 +294,24 @@ class PercorsiController {
     public function addAnno(): void {
         $percorsoId = (int)($_POST['percorso_id'] ?? 0);
         $numero     = (int)($_POST['numero'] ?? 0);
+        $codice     = trim($_POST['codice_corso'] ?? '');
 
         if ($percorsoId > 0 && $numero > 0) {
-            $this->model->addAnno($percorsoId, $numero);
+            $this->model->addAnno($percorsoId, $numero, $codice !== '' ? $codice : null);
             $_SESSION['flash_success'] = ordinal($numero) . ' anno aggiunto.';
+        }
+        header('Location: ' . BASE_URL . 'percorsi/detail/' . $percorsoId);
+        exit;
+    }
+
+    public function updateAnnoCodice(): void {
+        $annoId     = (int)($_POST['anno_id'] ?? 0);
+        $percorsoId = (int)($_POST['percorso_id'] ?? 0);
+        $codice     = trim($_POST['codice_corso'] ?? '');
+
+        if ($annoId > 0) {
+            $this->model->updateAnnoCodice($annoId, $codice !== '' ? $codice : null);
+            $_SESSION['flash_success'] = 'Codice corso aggiornato.';
         }
         header('Location: ' . BASE_URL . 'percorsi/detail/' . $percorsoId);
         exit;

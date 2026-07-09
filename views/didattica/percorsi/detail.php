@@ -140,6 +140,7 @@ for ($i = 1; $i <= 10; $i++) {
                         <thead style="background:#f8fafc;">
                             <tr>
                                 <th class="ps-4">Anno di corso</th>
+                                <th>Codice corso</th>
                                 <th>Materie</th>
                                 <th class="text-end pe-4">Azioni</th>
                             </tr>
@@ -150,6 +151,22 @@ for ($i = 1; $i <= 10; $i++) {
                                     <td class="ps-4 align-middle fw-semibold" style="color:#0c1a3a;">
                                         <i class="fas fa-layer-group me-2" style="color:#1e40af;"></i>
                                         <?= $ordinali[$anno['numero']] ?? $anno['numero'] . '° Anno' ?>
+                                    </td>
+                                    <td class="align-middle" onclick="event.stopPropagation()">
+                                        <?php if (!empty($anno['codice_corso'])): ?>
+                                            <span class="badge" style="background:#eef2ff;color:#1e40af;font-family:'Segoe UI',monospace;font-weight:700;letter-spacing:.5px;">
+                                                <?= htmlspecialchars($anno['codice_corso']) ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted small fst-italic">—</span>
+                                        <?php endif; ?>
+                                        <button type="button" class="btn btn-sm btn-link p-0 ms-1" title="Modifica codice corso"
+                                                onclick="apriModalCodiceAnno(this)"
+                                                data-anno-id="<?= $anno['id'] ?>"
+                                                data-codice="<?= htmlspecialchars($anno['codice_corso'] ?? '', ENT_QUOTES) ?>"
+                                                data-anno="<?= htmlspecialchars($ordinali[$anno['numero']] ?? $anno['numero'] . '° Anno', ENT_QUOTES) ?>">
+                                            <i class="fas fa-pen" style="font-size:.75rem;color:#94a3b8;"></i>
+                                        </button>
                                     </td>
                                     <td class="align-middle">
                                         <?php if ((int)$anno['num_materie'] > 0): ?>
@@ -203,6 +220,8 @@ for ($i = 1; $i <= 10; $i++) {
                             <?php endif; ?>
                         <?php endfor; ?>
                     </select>
+                    <label class="form-label small fw-semibold mt-3">Codice corso <span class="text-muted fw-normal">(opzionale)</span></label>
+                    <input type="text" name="codice_corso" class="form-control" maxlength="50" placeholder="Es. 1820-A">
                 </div>
                 <div class="modal-footer border-top px-4 py-3" style="background:#f8fafc;">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
@@ -244,8 +263,45 @@ for ($i = 1; $i <= 10; $i++) {
     </div>
 </div>
 
+<!-- Modal modifica codice corso anno -->
+<div class="modal fade" id="modalCodiceAnno" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="<?= BASE_URL ?>percorsi/update-anno-codice">
+                <input type="hidden" name="anno_id" id="codice-anno-id" value="">
+                <input type="hidden" name="percorso_id" value="<?= $percorso['id'] ?>">
+                <div class="modal-header border-bottom py-3 px-4" style="background:#f8fafc;">
+                    <h6 class="modal-title fw-semibold mb-0" style="color:#0c1a3a;">
+                        <i class="fas fa-hashtag me-2" style="color:#1e40af;"></i>Codice corso — <span id="codice-anno-label"></span>
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                </div>
+                <div class="modal-body px-4 py-3">
+                    <label class="form-label small fw-semibold">Codice corso</label>
+                    <input type="text" name="codice_corso" id="codice-anno-input" class="form-control" maxlength="50" placeholder="Es. 1820-A">
+                </div>
+                <div class="modal-footer border-top px-4 py-3" style="background:#f8fafc;">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Annulla
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-check me-1"></i>Salva
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 let _formAnno = null;
+
+function apriModalCodiceAnno(btn) {
+    document.getElementById('codice-anno-id').value      = btn.dataset.annoId ?? '';
+    document.getElementById('codice-anno-input').value   = btn.dataset.codice ?? '';
+    document.getElementById('codice-anno-label').textContent = btn.dataset.anno ?? '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCodiceAnno')).show();
+}
 
 function apriModalEliminaAnno(btn) {
     _formAnno = btn.closest('form');

@@ -265,6 +265,7 @@ switch ($controller) {
         elseif ($action === 'materia' && $param) $ctrl->materiaDetail((int)$param);
         elseif ($action === 'add-anno')          $ctrl->addAnno();
         elseif ($action === 'delete-anno')       $ctrl->deleteAnno();
+        elseif ($action === 'update-anno-codice')$ctrl->updateAnnoCodice();
         elseif ($action === 'add-materia')       $ctrl->addMateria();
         elseif ($action === 'delete-materia')    $ctrl->deleteMateria();
         elseif ($action === 'add-insegnante')    $ctrl->addInsegnante();

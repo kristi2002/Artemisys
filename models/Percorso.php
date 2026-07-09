@@ -22,13 +22,15 @@ class Percorso {
         $this->ensureColumn('percorsi_accademici', 'codice_corso', 'codice_corso VARCHAR(50) NULL AFTER nome');
         $this->db->exec("
             CREATE TABLE IF NOT EXISTS percorso_anni (
-                id          INT AUTO_INCREMENT PRIMARY KEY,
-                percorso_id INT NOT NULL,
-                numero      TINYINT NOT NULL,
-                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                id           INT AUTO_INCREMENT PRIMARY KEY,
+                percorso_id  INT NOT NULL,
+                numero       TINYINT NOT NULL,
+                codice_corso VARCHAR(50) NULL,
+                created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE KEY unique_percorso_anno (percorso_id, numero)
             ) ENGINE=InnoDB
         ");
+        $this->ensureColumn('percorso_anni', 'codice_corso', 'codice_corso VARCHAR(50) NULL AFTER numero');
         $this->db->exec("
             CREATE TABLE IF NOT EXISTS percorso_anno_materie (
                 id         INT AUTO_INCREMENT PRIMARY KEY,
@@ -254,10 +256,17 @@ class Percorso {
     }
 
     // ── Aggiungi anno al percorso ────────────────────────────────────────────
-    public function addAnno(int $percorsoId, int $numero): void {
+    public function addAnno(int $percorsoId, int $numero, ?string $codiceCorso = null): void {
         $this->db->prepare("
-            INSERT IGNORE INTO percorso_anni (percorso_id, numero) VALUES (?, ?)
-        ")->execute([$percorsoId, $numero]);
+            INSERT IGNORE INTO percorso_anni (percorso_id, numero, codice_corso) VALUES (?, ?, ?)
+        ")->execute([$percorsoId, $numero, $codiceCorso !== '' ? $codiceCorso : null]);
+    }
+
+    // ── Aggiorna il codice corso di un anno ──────────────────────────────────
+    public function updateAnnoCodice(int $annoId, ?string $codiceCorso): void {
+        $this->db->prepare("
+            UPDATE percorso_anni SET codice_corso = ? WHERE id = ?
+        ")->execute([$codiceCorso !== '' ? $codiceCorso : null, $annoId]);
     }
 
     // ── Rimuovi anno (e le sue materie) ─────────────────────────────────────
