@@ -45,121 +45,172 @@ $nomeAnno = $ordinali[$pam['anno_numero']] ?? $pam['anno_numero'] . '° Anno';
     </div>
 <?php endif; ?>
 
-<div class="row g-4">
+<style>
+/* ── Sezioni materia ── */
+.ins-card {
+    background:#fff;
+    border:1px solid #e2e8f0;
+    transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+}
+.ins-card:hover {
+    border-color:#c7d2fe;
+    box-shadow:0 6px 18px rgba(30,64,175,.10);
+    transform:translateY(-2px);
+}
+.ins-avatar {
+    width:44px;height:44px;min-width:44px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#1e40af,#3b82f6);
+    color:#fff;font-weight:700;font-size:.95rem;letter-spacing:.03em;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 6px rgba(30,64,175,.25);
+}
+.btn-remove-item {
+    border:none;background:transparent;color:#cbd5e1;
+    width:26px;height:26px;border-radius:50%;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .15s ease,color .15s ease;
+}
+.btn-remove-item:hover { background:#fee2e2;color:#dc2626; }
+.programma-list { counter-reset:arg; }
+.programma-list .arg-item { counter-increment:arg; }
+.arg-card {
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    transition:box-shadow .18s ease, border-color .18s ease;
+}
+.arg-card:hover { border-color:#c7d2fe; box-shadow:0 3px 10px rgba(30,64,175,.08); }
+.arg-num::before { content:counter(arg); }
+.arg-num {
+    width:28px;height:28px;min-width:28px;
+    border-radius:50%;
+    background:#e8eef8;color:#1e40af;
+    font-weight:700;font-size:.8rem;
+    display:flex;align-items:center;justify-content:center;
+}
+.section-empty { text-align:center;padding:1.5rem 0;color:#94a3b8; }
+.section-empty i { font-size:1.8rem;color:#cbd5e1;display:block;margin-bottom:.5rem; }
+</style>
 
-    <!-- Colonna sinistra: insegnante + argomenti -->
-    <div class="col-lg-4">
-
-        <!-- Insegnanti -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
-                <h6 class="mb-0 fw-semibold" style="color:#0c1a3a;">
-                    <i class="fas fa-chalkboard-teacher me-2" style="color:#1e40af;"></i>Insegnanti
-                </h6>
-                <span id="badge-insegnanti" class="badge" style="background:#e8eef8;color:#1e40af;"><?= count($insegnanti) ?></span>
-            </div>
-            <div class="card-body">
-
-                <!-- Lista insegnanti assegnati -->
-                <p id="empty-insegnanti" class="text-muted small fst-italic mb-3" <?= !empty($insegnanti) ? 'style="display:none;"' : '' ?>>
-                    Nessun insegnante assegnato.
-                </p>
-                <ul id="lista-insegnanti" class="list-group list-group-flush mb-3">
-                    <?php foreach ($insegnanti as $ins): ?>
-                        <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center ins-item"
-                            data-id="<?= $ins['id'] ?>">
-                            <span style="color:#0c1a3a;font-size:0.9rem;">
-                                <i class="fas fa-user-tie me-2 text-muted" style="font-size:0.8rem;"></i>
+<!-- ── Sezione Insegnanti ── -->
+<div class="card border-0 shadow-sm mb-4" id="sezione-insegnanti">
+    <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h6 class="mb-0 fw-semibold" style="color:#0c1a3a;">
+            <i class="fas fa-chalkboard-teacher me-2" style="color:#1e40af;"></i>Insegnanti
+            <span id="badge-insegnanti" class="badge ms-2" style="background:#e8eef8;color:#1e40af;"><?= count($insegnanti) ?></span>
+        </h6>
+        <?php if (!empty($insegnantiDisponibili)): ?>
+            <form id="form-add-insegnante" method="POST" action="<?= BASE_URL ?>percorsi/add-insegnante" class="mb-0">
+                <input type="hidden" name="pam_id" value="<?= $pam['id'] ?>">
+                <div class="input-group input-group-sm" style="max-width:320px;">
+                    <select name="insegnante_id" class="form-select" required>
+                        <option value="">— Aggiungi insegnante —</option>
+                        <?php foreach ($insegnantiDisponibili as $ins): ?>
+                            <option value="<?= $ins['id'] ?>">
                                 <?= htmlspecialchars($ins['cognome'] . ' ' . $ins['nome']) ?>
-                            </span>
-                            <button type="button" class="btn btn-link p-0 text-danger" style="font-size:0.8rem;"
-                                    onclick="apriModalRimuoviInsegnante(this)"
-                                    data-id="<?= $ins['id'] ?>"
-                                    data-nome="<?= htmlspecialchars($ins['cognome'] . ' ' . $ins['nome'], ENT_QUOTES) ?>">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-
-                <!-- Aggiungi insegnante -->
-                <?php if (!empty($insegnantiDisponibili)): ?>
-                    <form id="form-add-insegnante" method="POST" action="<?= BASE_URL ?>percorsi/add-insegnante">
-                        <input type="hidden" name="pam_id" value="<?= $pam['id'] ?>">
-                        <div class="input-group input-group-sm">
-                            <select name="insegnante_id" class="form-select" required>
-                                <option value="">— Aggiungi insegnante —</option>
-                                <?php foreach ($insegnantiDisponibili as $ins): ?>
-                                    <option value="<?= $ins['id'] ?>">
-                                        <?= htmlspecialchars($ins['cognome'] . ' ' . $ins['nome']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                    </form>
-                <?php else: ?>
-                    <p id="tutti-assegnati" class="text-muted small fst-italic mb-0">Tutti gli insegnanti sono già assegnati.</p>
-                <?php endif; ?>
-
-            </div>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </form>
+        <?php else: ?>
+            <p id="tutti-assegnati" class="text-muted small fst-italic mb-0">Tutti gli insegnanti sono già assegnati.</p>
+        <?php endif; ?>
+    </div>
+    <div class="card-body px-4 py-4">
+        <div id="empty-insegnanti" class="section-empty" <?= !empty($insegnanti) ? 'style="display:none;"' : '' ?>>
+            <i class="fas fa-user-slash"></i>
+            Nessun insegnante assegnato a questa materia.
         </div>
-
-        <!-- Argomenti -->
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
-                <h6 class="mb-0 fw-semibold" style="color:#0c1a3a;">
-                    <i class="fas fa-list-ul me-2" style="color:#1e40af;"></i>Programma
-                </h6>
-                <span id="badge-argomenti" class="badge" style="background:#e8eef8;color:#1e40af;"><?= count($argomenti) ?></span>
-            </div>
-            <div class="card-body">
-                <!-- Form aggiungi argomento -->
-                <form id="form-add-argomento" method="POST" action="<?= BASE_URL ?>percorsi/add-argomento" class="mb-3">
-                    <input type="hidden" name="pam_id" value="<?= $pam['id'] ?>">
-                    <div class="input-group input-group-sm">
-                        <input type="text" name="titolo" class="form-control" placeholder="Nuovo argomento..." required maxlength="255">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-plus"></i>
+        <div id="lista-insegnanti" class="row g-3">
+            <?php foreach ($insegnanti as $ins):
+                $iniziali = mb_strtoupper(mb_substr($ins['nome'], 0, 1) . mb_substr($ins['cognome'], 0, 1));
+            ?>
+                <div class="col-xl-3 col-lg-4 col-sm-6 ins-item" data-id="<?= $ins['id'] ?>">
+                    <div class="ins-card d-flex align-items-center gap-3 p-3 rounded-3 h-100">
+                        <div class="ins-avatar"><?= htmlspecialchars($iniziali) ?></div>
+                        <div class="flex-grow-1" style="min-width:0;">
+                            <div class="fw-semibold text-truncate" style="color:#0c1a3a;font-size:.92rem;">
+                                <?= htmlspecialchars($ins['cognome'] . ' ' . $ins['nome']) ?>
+                            </div>
+                            <div class="text-muted" style="font-size:.75rem;">
+                                <i class="fas fa-user-tie me-1"></i>Insegnante
+                            </div>
+                        </div>
+                        <button type="button" class="btn-remove-item" title="Rimuovi"
+                                onclick="apriModalRimuoviInsegnante(this)"
+                                data-id="<?= $ins['id'] ?>"
+                                data-nome="<?= htmlspecialchars($ins['cognome'] . ' ' . $ins['nome'], ENT_QUOTES) ?>">
+                            <i class="fas fa-times"></i>
                         </button>
                     </div>
-                </form>
-
-                <p id="empty-argomenti" class="text-muted small fst-italic mb-0" <?= !empty($argomenti) ? 'style="display:none;"' : '' ?>>
-                    Nessun argomento aggiunto.
-                </p>
-                <ol id="lista-argomenti" class="list-group list-group-flush list-group-numbered" style="font-size:0.88rem;">
-                    <?php foreach ($argomenti as $arg): ?>
-                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 arg-item"
-                            data-id="<?= $arg['id'] ?>">
-                            <span style="color:#0c1a3a;"><?= htmlspecialchars($arg['titolo']) ?></span>
-                            <button type="button" class="btn btn-link p-0 text-danger" style="font-size:0.8rem;"
-                                    onclick="eliminaArgomento(this)"
-                                    data-id="<?= $arg['id'] ?>"
-                                    data-titolo="<?= htmlspecialchars($arg['titolo'], ENT_QUOTES) ?>">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </li>
-                    <?php endforeach; ?>
-                </ol>
-            </div>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
+</div>
 
-    <!-- Colonna destra: lezioni -->
-    <div class="col-lg-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
-                <h6 class="mb-0 fw-semibold" style="color:#0c1a3a;">
-                    <i class="fas fa-book-open me-2" style="color:#1e40af;"></i>Lezioni
-                </h6>
-                <span class="badge" style="background:#e8eef8;color:#1e40af;"><?= count($lezioni) ?></span>
+<!-- ── Sezione Programma ── -->
+<div class="card border-0 shadow-sm mb-4" id="sezione-programma">
+    <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h6 class="mb-0 fw-semibold" style="color:#0c1a3a;">
+            <i class="fas fa-list-ul me-2" style="color:#1e40af;"></i>Programma
+            <span id="badge-argomenti" class="badge ms-2" style="background:#e8eef8;color:#1e40af;"><?= count($argomenti) ?></span>
+        </h6>
+        <form id="form-add-argomento" method="POST" action="<?= BASE_URL ?>percorsi/add-argomento" class="mb-0">
+            <input type="hidden" name="pam_id" value="<?= $pam['id'] ?>">
+            <div class="input-group input-group-sm" style="max-width:320px;">
+                <input type="text" name="titolo" class="form-control" placeholder="Nuovo argomento..." required maxlength="255">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                </button>
             </div>
+        </form>
+    </div>
+    <div class="card-body px-4 py-4">
+        <div id="empty-argomenti" class="section-empty" <?= !empty($argomenti) ? 'style="display:none;"' : '' ?>>
+            <i class="fas fa-clipboard-list"></i>
+            Nessun argomento nel programma. Aggiungi il primo dall'header qui sopra.
+        </div>
+        <ol id="lista-argomenti" class="row g-2 list-unstyled mb-0 programma-list">
+            <?php foreach ($argomenti as $arg): ?>
+                <li class="col-md-6 arg-item" data-id="<?= $arg['id'] ?>">
+                    <div class="arg-card d-flex align-items-center gap-3 px-3 py-2 rounded-3 h-100">
+                        <span class="arg-num"></span>
+                        <span class="flex-grow-1" style="color:#0c1a3a;font-size:.9rem;"><?= htmlspecialchars($arg['titolo']) ?></span>
+                        <button type="button" class="btn-remove-item" title="Rimuovi"
+                                onclick="eliminaArgomento(this)"
+                                data-id="<?= $arg['id'] ?>"
+                                data-titolo="<?= htmlspecialchars($arg['titolo'], ENT_QUOTES) ?>">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </li>
+            <?php endforeach; ?>
+        </ol>
+    </div>
+</div>
 
-            <!-- Form nuova lezione -->
-            <div class="card-body border-bottom" style="background:#fafbff;">
+<!-- ── Sezione Lezioni ── -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h6 class="mb-0 fw-semibold" style="color:#0c1a3a;">
+            <i class="fas fa-book-open me-2" style="color:#1e40af;"></i>Lezioni
+            <span class="badge ms-2" style="background:#e8eef8;color:#1e40af;"><?= count($lezioni) ?></span>
+        </h6>
+        <button class="btn btn-sm btn-primary px-3" type="button"
+                data-bs-toggle="collapse" data-bs-target="#collapseNuovaLezione"
+                aria-expanded="<?= empty($lezioni) ? 'true' : 'false' ?>" aria-controls="collapseNuovaLezione">
+            <i class="fas fa-plus me-1"></i>Nuova lezione
+        </button>
+    </div>
+
+    <!-- Form nuova lezione (collassabile) -->
+    <div class="collapse<?= empty($lezioni) ? ' show' : '' ?>" id="collapseNuovaLezione">
+    <div class="card-body border-bottom" style="background:#fafbff;">
                 <form method="POST" action="<?= BASE_URL ?>percorsi/add-lezione">
                     <input type="hidden" name="pam_id" value="<?= $pam['id'] ?>">
                     <div class="row g-2 align-items-end">
@@ -223,8 +274,9 @@ $nomeAnno = $ordinali[$pam['anno_numero']] ?? $pam['anno_numero'] . '° Anno';
                     </div>
                 </form>
             </div>
+    </div>
 
-            <!-- Lista lezioni -->
+    <!-- Lista lezioni -->
             <div class="card-body p-0">
                 <?php if (empty($lezioni)): ?>
                     <div class="empty-state" style="padding:2rem 0;">
@@ -301,10 +353,7 @@ $nomeAnno = $ordinali[$pam['anno_numero']] ?? $pam['anno_numero'] . '° Anno';
                         </tbody>
                     </table>
                 <?php endif; ?>
-            </div>
-        </div>
     </div>
-
 </div>
 
 <!-- Modal conferma eliminazione lezione -->
@@ -392,7 +441,7 @@ function flashBannerMateria(type, msg) {
     div.setAttribute('role', 'alert');
     div.innerHTML = `<i class="fas ${icon} me-2"></i>${msg}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Chiudi"></button>`;
-    const anchor = document.querySelector('.row.g-4') ?? document.body;
+    const anchor = document.getElementById('sezione-insegnanti') ?? document.body;
     anchor.parentNode.insertBefore(div, anchor);
     setTimeout(() => bootstrap.Alert.getOrCreateInstance(div).close(), 4000);
 }
@@ -489,16 +538,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const lista = document.getElementById('lista-argomenti');
                 const li    = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center px-0 py-2 arg-item';
+                li.className = 'col-md-6 arg-item';
                 li.dataset.id = data.id;
                 li.innerHTML = `
-                    <span style="color:#0c1a3a;">${data.titolo.replace(/</g,'&lt;')}</span>
-                    <button type="button" class="btn btn-link p-0 text-danger" style="font-size:0.8rem;"
-                            onclick="eliminaArgomento(this)"
-                            data-id="${data.id}"
-                            data-titolo="${data.titolo.replace(/"/g,'&quot;')}">
-                        <i class="fas fa-times"></i>
-                    </button>`;
+                    <div class="arg-card d-flex align-items-center gap-3 px-3 py-2 rounded-3 h-100">
+                        <span class="arg-num"></span>
+                        <span class="flex-grow-1" style="color:#0c1a3a;font-size:.9rem;">${data.titolo.replace(/</g,'&lt;')}</span>
+                        <button type="button" class="btn-remove-item" title="Rimuovi"
+                                onclick="eliminaArgomento(this)"
+                                data-id="${data.id}"
+                                data-titolo="${data.titolo.replace(/"/g,'&quot;')}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>`;
                 lista.appendChild(li);
 
                 input.value = '';
@@ -571,25 +623,31 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await r.json();
             if (!data.success) { flashBannerMateria('danger', data.error ?? 'Errore durante l\'aggiunta.'); return; }
 
-            const nomeTxt = `${data.cognome} ${data.nome}`;
+            const nomeTxt  = `${data.cognome} ${data.nome}`;
+            const iniziali = ((data.nome?.[0] ?? '') + (data.cognome?.[0] ?? '')).toUpperCase();
 
-            // Aggiunge la riga alla lista
+            // Aggiunge la card alla griglia
             const lista = document.getElementById('lista-insegnanti');
-            const li    = document.createElement('li');
-            li.className = 'list-group-item px-0 py-2 d-flex justify-content-between align-items-center ins-item';
-            li.dataset.id = data.id;
-            li.innerHTML = `
-                <span style="color:#0c1a3a;font-size:0.9rem;">
-                    <i class="fas fa-user-tie me-2 text-muted" style="font-size:0.8rem;"></i>
-                    ${nomeTxt}
-                </span>
-                <button type="button" class="btn btn-link p-0 text-danger" style="font-size:0.8rem;"
-                        onclick="apriModalRimuoviInsegnante(this)"
-                        data-id="${data.id}"
-                        data-nome="${nomeTxt}">
-                    <i class="fas fa-times"></i>
-                </button>`;
-            lista.appendChild(li);
+            const col   = document.createElement('div');
+            col.className = 'col-xl-3 col-lg-4 col-sm-6 ins-item';
+            col.dataset.id = data.id;
+            col.innerHTML = `
+                <div class="ins-card d-flex align-items-center gap-3 p-3 rounded-3 h-100">
+                    <div class="ins-avatar">${iniziali}</div>
+                    <div class="flex-grow-1" style="min-width:0;">
+                        <div class="fw-semibold text-truncate" style="color:#0c1a3a;font-size:.92rem;">${nomeTxt}</div>
+                        <div class="text-muted" style="font-size:.75rem;">
+                            <i class="fas fa-user-tie me-1"></i>Insegnante
+                        </div>
+                    </div>
+                    <button type="button" class="btn-remove-item" title="Rimuovi"
+                            onclick="apriModalRimuoviInsegnante(this)"
+                            data-id="${data.id}"
+                            data-nome="${nomeTxt}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>`;
+            lista.appendChild(col);
 
             // Rimuove l'opzione dalla select
             sel.querySelector(`option[value="${insegnanteId}"]`)?.remove();
