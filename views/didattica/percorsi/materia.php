@@ -293,7 +293,7 @@ $nomeAnno = $ordinali[$pam['anno_numero']] ?? $pam['anno_numero'] . '° Anno';
                         <p>Aggiungi la prima lezione dal form qui sopra.</p>
                     </div>
                 <?php else: ?>
-                    <table class="table table-hover mb-0">
+                    <table class="table table-hover mb-0 tabella-lezioni">
                         <thead style="background:#f8fafc;">
                             <tr>
                                 <th class="ps-4">Titolo</th>

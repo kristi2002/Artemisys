@@ -878,3 +878,11 @@ body {
         display: block;
     }
 }
+
+/* ===== Più spazio tra le colonne nella tabella lezioni ===== */
+.tabella-lezioni th,
+.tabella-lezioni td {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    vertical-align: middle;
+}
