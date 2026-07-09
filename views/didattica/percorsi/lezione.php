@@ -101,6 +101,16 @@ $lezioneFutura = $lezione['data'] && $lezione['data'] > date('Y-m-d');
                         <td><?= $lezione['data'] ? date('d/m/Y', strtotime($lezione['data'])) : '—' ?></td>
                     </tr>
                     <tr>
+                        <td class="text-muted ps-0">Orario</td>
+                        <td><?php
+                            $oi = !empty($lezione['ora_inizio']) ? substr($lezione['ora_inizio'], 0, 5) : '';
+                            $of = !empty($lezione['ora_fine'])   ? substr($lezione['ora_fine'], 0, 5)   : '';
+                            if ($oi && $of)  echo htmlspecialchars("$oi – $of");
+                            elseif ($oi)     echo htmlspecialchars($oi);
+                            else             echo '—';
+                        ?></td>
+                    </tr>
+                    <tr>
                         <td class="text-muted ps-0">Durata</td>
                         <td><?php if ($lezione['durata_minuti']): $d = (int)$lezione['durata_minuti'];
                             echo ($d % 60 === 0) ? ($d/60).'h' : floor($d/60).'h '.($d%60).'m';
@@ -180,14 +190,26 @@ $lezioneFutura = $lezione['data'] && $lezione['data'] > date('Y-m-d');
                                required maxlength="255">
                     </div>
                     <div class="row g-2 mb-3">
-                        <div class="col-7">
+                        <div class="col-12">
                             <label class="form-label small fw-semibold mb-1">Data</label>
                             <input type="date" name="data" class="form-control form-control-sm"
                                    value="<?= htmlspecialchars($lezione['data'] ?? '') ?>">
                         </div>
-                        <div class="col-5">
+                        <div class="col-4">
+                            <label class="form-label small fw-semibold mb-1">Ora inizio</label>
+                            <input type="time" name="ora_inizio" id="oraInizioEdit" class="form-control form-control-sm"
+                                   value="<?= htmlspecialchars(!empty($lezione['ora_inizio']) ? substr($lezione['ora_inizio'],0,5) : '') ?>"
+                                   oninput="calcDurataEdit()">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-semibold mb-1">Ora fine</label>
+                            <input type="time" name="ora_fine" id="oraFineEdit" class="form-control form-control-sm"
+                                   value="<?= htmlspecialchars(!empty($lezione['ora_fine']) ? substr($lezione['ora_fine'],0,5) : '') ?>"
+                                   oninput="calcDurataEdit()">
+                        </div>
+                        <div class="col-4">
                             <label class="form-label small fw-semibold mb-1">Durata (ore)</label>
-                            <input type="number" name="durata_ore" class="form-control form-control-sm"
+                            <input type="number" name="durata_ore" id="durataEdit" class="form-control form-control-sm"
                                    value="<?= $lezione['durata_minuti'] ? $lezione['durata_minuti']/60 : '' ?>"
                                    min="0.5" max="12" step="0.5">
                         </div>
@@ -442,6 +464,18 @@ $lezioneFutura = $lezione['data'] && $lezione['data'] > date('Y-m-d');
 </div>
 
 <script>
+/* ── Calcola in automatico la durata (ore) da ora inizio/fine ─────────────── */
+function calcDurataEdit() {
+    var i = document.getElementById('oraInizioEdit');
+    var f = document.getElementById('oraFineEdit');
+    var d = document.getElementById('durataEdit');
+    if (!i || !f || !d || !i.value || !f.value) return;
+    var a = i.value.split(':'), b = f.value.split(':');
+    var mins = (parseInt(b[0]) * 60 + parseInt(b[1])) - (parseInt(a[0]) * 60 + parseInt(a[1]));
+    if (mins < 0) mins += 24 * 60;
+    d.value = Math.round((mins / 60) * 100) / 100;
+}
+
 function toggleAll(presente) {
     document.querySelectorAll('.presenza-toggle').forEach(cb => cb.checked = presente);
     aggiornaRiepilogoLive();

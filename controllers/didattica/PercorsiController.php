@@ -457,6 +457,8 @@ class PercorsiController {
                 'percorso_anno_materia_id' => $pamId,
                 'titolo'                   => $titolo,
                 'data'                     => $_POST['data'] ?? '',
+                'ora_inizio'               => trim($_POST['ora_inizio'] ?? ''),
+                'ora_fine'                 => trim($_POST['ora_fine'] ?? ''),
                 'durata_minuti'            => $oreInput !== '' ? (int)round((float)$oreInput * 60) : null,
                 'note'                     => $_POST['note'] ?? '',
                 'online'                   => isset($_POST['online']) ? 1 : 0,
@@ -574,7 +576,9 @@ class PercorsiController {
                 trim($_POST['argomento']   ?? ''),
                 trim($_POST['note']        ?? ''),
                 isset($_POST['online']) ? 1 : 0,
-                trim($_POST['link_online'] ?? '')
+                trim($_POST['link_online'] ?? ''),
+                trim($_POST['ora_inizio']  ?? ''),
+                trim($_POST['ora_fine']    ?? '')
             );
             if ($isAjax) {
                 header('Content-Type: application/json');

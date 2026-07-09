@@ -61,6 +61,8 @@ class Lezione {
         try { $this->db->exec("ALTER TABLE lezioni ADD COLUMN argomento TEXT NULL"); } catch (Exception $e) {}
         try { $this->db->exec("ALTER TABLE lezioni ADD COLUMN online TINYINT(1) NOT NULL DEFAULT 0"); } catch (Exception $e) {}
         try { $this->db->exec("ALTER TABLE lezioni ADD COLUMN link_online VARCHAR(500) NULL"); } catch (Exception $e) {}
+        try { $this->db->exec("ALTER TABLE lezioni ADD COLUMN ora_inizio TIME NULL"); } catch (Exception $e) {}
+        try { $this->db->exec("ALTER TABLE lezioni ADD COLUMN ora_fine TIME NULL"); } catch (Exception $e) {}
 
         $this->db->exec("
             CREATE TABLE IF NOT EXISTS lezione_insegnanti (
@@ -150,12 +152,14 @@ class Lezione {
 
     public function create(array $data): int {
         $this->db->prepare("
-            INSERT INTO lezioni (percorso_anno_materia_id, titolo, data, durata_minuti, note, online, link_online, argomento)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO lezioni (percorso_anno_materia_id, titolo, data, ora_inizio, ora_fine, durata_minuti, note, online, link_online, argomento)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ")->execute([
             $data['percorso_anno_materia_id'] ?: null,
             $data['titolo'],
             $data['data'] ?: null,
+            !empty($data['ora_inizio']) ? $data['ora_inizio'] : null,
+            !empty($data['ora_fine'])   ? $data['ora_fine']   : null,
             $data['durata_minuti'] ?: null,
             $data['note'] ?: null,
             $data['online']      ?? 0,
@@ -331,10 +335,10 @@ class Lezione {
     }
 
     // ── Dettagli lezione (argomento, note, online) ────────────────────────────
-    public function updateDettagli(int $lezioneId, string $titolo, string $data, ?int $durata, string $argomento, string $note, int $online, string $linkOnline = ''): void {
+    public function updateDettagli(int $lezioneId, string $titolo, string $data, ?int $durata, string $argomento, string $note, int $online, string $linkOnline = '', string $oraInizio = '', string $oraFine = ''): void {
         $this->db->prepare("
-            UPDATE lezioni SET titolo = ?, data = ?, durata_minuti = ?, argomento = ?, note = ?, online = ?, link_online = ? WHERE id = ?
-        ")->execute([$titolo, $data ?: null, $durata, $argomento ?: null, $note ?: null, $online, $linkOnline ?: null, $lezioneId]);
+            UPDATE lezioni SET titolo = ?, data = ?, ora_inizio = ?, ora_fine = ?, durata_minuti = ?, argomento = ?, note = ?, online = ?, link_online = ? WHERE id = ?
+        ")->execute([$titolo, $data ?: null, $oraInizio ?: null, $oraFine ?: null, $durata, $argomento ?: null, $note ?: null, $online, $linkOnline ?: null, $lezioneId]);
     }
 
     public function toggleOnline(int $lezioneId): void {

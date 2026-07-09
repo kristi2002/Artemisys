@@ -214,28 +214,36 @@ $nomeAnno = $ordinali[$pam['anno_numero']] ?? $pam['anno_numero'] . '° Anno';
                 <form method="POST" action="<?= BASE_URL ?>percorsi/add-lezione">
                     <input type="hidden" name="pam_id" value="<?= $pam['id'] ?>">
                     <div class="row g-2 align-items-end">
-                        <div class="col-md-5">
+                        <div class="col-md-4">
                             <label class="form-label small fw-semibold mb-1">Titolo <span class="text-danger">*</span></label>
                             <input type="text" name="titolo" class="form-control form-control-sm"
                                    placeholder="es. Introduzione agli shampoo" required maxlength="255">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label small fw-semibold mb-1">Data</label>
                             <input type="date" name="data" class="form-control form-control-sm">
                         </div>
                         <div class="col-md-2">
+                            <label class="form-label small fw-semibold mb-1">Ora inizio</label>
+                            <input type="time" name="ora_inizio" id="oraInizioNew" class="form-control form-control-sm"
+                                   oninput="calcDurataNew()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small fw-semibold mb-1">Ora fine</label>
+                            <input type="time" name="ora_fine" id="oraFineNew" class="form-control form-control-sm"
+                                   oninput="calcDurataNew()">
+                        </div>
+                        <div class="col-md-2">
                             <label class="form-label small fw-semibold mb-1">Durata (ore)</label>
-                            <input type="number" name="durata_ore" class="form-control form-control-sm"
+                            <input type="number" name="durata_ore" id="durataNew" class="form-control form-control-sm"
                                    placeholder="3" min="0.5" max="12" step="0.5">
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <div class="d-flex align-items-center gap-2 pb-1">
-                                <span class="small fw-semibold text-muted">Online</span>
-                                <div class="form-check form-switch mb-0">
-                                    <input class="form-check-input" type="checkbox" name="online" id="chkOnlineNew"
-                                           style="width:2.2em;height:1.2em;cursor:pointer;"
-                                           onchange="document.getElementById('linkOnlineWrapNew').style.display=this.checked?'block':'none'">
-                                </div>
+                        <div class="col-12 d-flex align-items-center gap-2">
+                            <span class="small fw-semibold text-muted">Online</span>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" name="online" id="chkOnlineNew"
+                                       style="width:2.2em;height:1.2em;cursor:pointer;"
+                                       onchange="document.getElementById('linkOnlineWrapNew').style.display=this.checked?'block':'none'">
                             </div>
                         </div>
                         <div class="col-12" id="linkOnlineWrapNew" style="display:none;">
@@ -290,6 +298,7 @@ $nomeAnno = $ordinali[$pam['anno_numero']] ?? $pam['anno_numero'] . '° Anno';
                             <tr>
                                 <th class="ps-4">Titolo</th>
                                 <th style="width:110px;">Data</th>
+                                <th style="width:120px;">Orario</th>
                                 <th style="width:80px;">Durata</th>
                                 <th>Insegnanti</th>
                                 <th style="width:50px;"></th>
@@ -324,6 +333,15 @@ $nomeAnno = $ordinali[$pam['anno_numero']] ?? $pam['anno_numero'] . '° Anno';
                                     </td>
                                     <td class="align-middle text-muted small">
                                         <?= $lez['data'] ? date('d/m/Y', strtotime($lez['data'])) : '—' ?>
+                                    </td>
+                                    <td class="align-middle text-muted small">
+                                        <?php
+                                        $oi = !empty($lez['ora_inizio']) ? substr($lez['ora_inizio'], 0, 5) : '';
+                                        $of = !empty($lez['ora_fine'])   ? substr($lez['ora_fine'], 0, 5)   : '';
+                                        if ($oi && $of)      echo '<i class="far fa-clock me-1"></i>' . htmlspecialchars("$oi–$of");
+                                        elseif ($oi)         echo '<i class="far fa-clock me-1"></i>' . htmlspecialchars($oi);
+                                        else                 echo '—';
+                                        ?>
                                     </td>
                                     <td class="align-middle text-muted small">
                                         <?php if ($lez['durata_minuti']): $d = (int)$lez['durata_minuti'];
@@ -433,6 +451,18 @@ $nomeAnno = $ordinali[$pam['anno_numero']] ?? $pam['anno_numero'] . '° Anno';
 </div>
 
 <script>
+/* ── Calcola in automatico la durata (ore) da ora inizio/fine ─────────────── */
+function calcDurataNew() {
+    var i = document.getElementById('oraInizioNew');
+    var f = document.getElementById('oraFineNew');
+    var d = document.getElementById('durataNew');
+    if (!i || !f || !d || !i.value || !f.value) return;
+    var a = i.value.split(':'), b = f.value.split(':');
+    var mins = (parseInt(b[0]) * 60 + parseInt(b[1])) - (parseInt(a[0]) * 60 + parseInt(a[1]));
+    if (mins < 0) mins += 24 * 60; // gestisce l'orario che supera la mezzanotte
+    d.value = Math.round((mins / 60) * 100) / 100;
+}
+
 /* ── helpers UI ────────────────────────────────────────────────────────── */
 function flashBannerMateria(type, msg) {
     const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
