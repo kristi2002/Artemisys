@@ -150,6 +150,20 @@ $targetLabel = [
                             <textarea name="contenuto" class="form-control" rows="5" required
                                       placeholder="Scrivi qui il messaggio..."></textarea>
                         </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1"
+                                       name="notifica_email" id="notifica_email">
+                                <label class="form-check-label small" for="notifica_email">
+                                    <i class="fas fa-envelope me-1"></i>
+                                    Avvisa i destinatari via email
+                                </label>
+                                <div class="form-text small">
+                                    Viene inviato solo il titolo e un estratto, con il link alla bacheca.
+                                    L'invio puo' richiedere qualche istante.
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

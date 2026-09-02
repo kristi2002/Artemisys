@@ -1,0 +1,26 @@
+# Credenziali: mai versionate. I valori reali stanno nella tab
+# "Environment Variables" di Coolify (vedi .env.example per i nomi).
+.env
+.env.*
+!.env.example
+
+# Dipendenze Composer: ricostruite in fase di build (vedi Dockerfile)
+/vendor/
+
+# Upload utente e documenti generati a runtime
+/uploads/*
+!/uploads/.gitkeep
+/public/uploads/*
+!/public/uploads/.gitkeep
+/documenti/*
+!/documenti/.gitkeep
+
+# Log
+*.log
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

@@ -66,15 +66,36 @@ class BachecaController {
             $_SESSION['flash_error'] = 'Titolo e contenuto sono obbligatori.';
             header('Location: ' . BASE_URL . 'bacheca'); exit;
         }
-        $this->model->create([
+        $com = [
             'titolo'      => $titolo,
             'contenuto'   => $contenuto,
             'tipo'        => $_POST['tipo']   ?? 'generale',
             'target'      => $_POST['target'] ?? 'tutti',
             'autore_id'   => $_SESSION['user_id']   ?? null,
             'autore_nome' => $_SESSION['user_nome'] ?? null,
-        ]);
-        $_SESSION['flash_success'] = 'Comunicazione pubblicata.';
+        ];
+        $this->model->create($com);
+
+        $messaggio = 'Comunicazione pubblicata.';
+
+        // Notifica via email: solo se richiesta esplicitamente con la spunta.
+        // La pubblicazione e' gia' andata a buon fine: un problema di invio
+        // non deve far sembrare fallita l'operazione.
+        if (!empty($_POST['notifica_email'])) {
+            require_once BASE_PATH . 'services/Notifiche.php';
+            $mailer = Mailer::getInstance();
+
+            if (!$mailer->isEnabled()) {
+                $messaggio .= ' Notifica email non inviata: invio non configurato.';
+            } else {
+                $inviate = (new Notifiche())->comunicazione($com);
+                $messaggio .= $inviate > 0
+                    ? " Notifica inviata a {$inviate} destinatari."
+                    : ' Nessuna notifica inviata: controlla i log.';
+            }
+        }
+
+        $_SESSION['flash_success'] = $messaggio;
         header('Location: ' . BASE_URL . 'bacheca'); exit;
     }
 

@@ -176,6 +176,10 @@ switch ($controller) {
         $ctrl = new AuthController();
         if ($action === 'login') $ctrl->login();
         elseif ($action === 'logout') $ctrl->logout();
+        // Recupero password: raggiungibili senza sessione (il controller 'auth'
+        // è già escluso dal blocco di login qui sopra).
+        elseif ($action === 'password-dimenticata')  $ctrl->passwordDimenticata();
+        elseif ($action === 'reimposta-password')    $ctrl->reimpostaPassword();
         break;
 
     // ===== SWITCH MODULI =====

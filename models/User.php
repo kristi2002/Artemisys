@@ -18,4 +18,18 @@ class User {
         $stmt->execute([$id]);
         return $stmt->fetch();
     }
+
+    // ── Ricerca per email (recupero password) ───────────────────────────────
+    //     users.email è UNIQUE, quindi il risultato è sempre al più uno.
+    public function findByEmail(string $email) {
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE email = ? AND attivo = 1 LIMIT 1");
+        $stmt->execute([$email]);
+        return $stmt->fetch();
+    }
+
+    // ── Imposta una nuova password (già in chiaro, viene hashata qui) ────────
+    public function updatePassword(int $id, string $newPassword): void {
+        $this->db->prepare("UPDATE users SET password = ? WHERE id = ?")
+                 ->execute([password_hash($newPassword, PASSWORD_DEFAULT), $id]);
+    }
 }

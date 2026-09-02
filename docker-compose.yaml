@@ -4,6 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    # Tetto di memoria: se l'app sfora, muore SOLO lei.
+    # Senza questo limite il kernel sceglie le vittime a livello di host
+    # e uccide mysqld (vedi OOM del 24/08).
+    # 768M copre 8 worker Apache + picchi di generazione .docx (ZipArchive,
+    # memory_limit=256M per richiesta). I 256M extra di swap sono un cuscinetto
+    # per non far uccidere il processo padre di Apache durante i picchi.
+    mem_limit: 768m
+    memswap_limit: 1g
     environment:
       # Coolify inietta questi valori (vedi tab "Environment Variables")
       - DB_HOST=db
@@ -12,6 +20,22 @@ services:
       - DB_USER=${DB_USER:-artemisys}
       - DB_PASSWORD=${DB_PASSWORD}
       - APP_DEBUG=${APP_DEBUG:-0}
+      # Indirizzo pubblico dell'app: serve a costruire i link dentro le email
+      # (es. https://artemisys.example.it). Senza, i link di recupero password
+      # restano relativi e non funzionano.
+      - APP_URL=${APP_URL:-https://artemisys.testdemo.it}
+      # --- Email (nomi e valori spiegati in .env.example) ---
+      - MAIL_ENABLED=${MAIL_ENABLED:-0}
+      - MAIL_LOG_ONLY=${MAIL_LOG_ONLY:-0}
+      - MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION:-tls}
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - MAIL_FROM=${MAIL_FROM:-}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME:-Moascuola}
+      - MAIL_REPLY_TO=${MAIL_REPLY_TO:-}
+      - MAIL_TIMEOUT=${MAIL_TIMEOUT:-10}
     ports:
       # Coolify/Traefik instrada il dominio verso la porta 80 del container
       - "80"
@@ -29,6 +53,19 @@ services:
       context: .
       dockerfile: db/Dockerfile
     restart: unless-stopped
+    # MySQL 8 di default prenota molta RAM (performance_schema da solo ~200MB).
+    # Su questo host non c'è margine: lo teniamo sotto i 512MB e fuori dallo swap.
+    mem_limit: 512m
+    memswap_limit: 512m
+    command:
+      - --innodb-buffer-pool-size=128M
+      - --performance-schema=OFF
+      - --max-connections=50
+      - --innodb-log-buffer-size=8M
+      - --key-buffer-size=8M
+      - --tmp-table-size=16M
+      - --max-heap-table-size=16M
+      - --table-open-cache=200
     environment:
       - MYSQL_DATABASE=${DB_NAME:-artemisys}
       - MYSQL_USER=${DB_USER:-artemisys}

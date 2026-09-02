@@ -45,6 +45,12 @@
                         <i class="fas fa-sign-in-alt me-2"></i>Accedi
                     </button>
                 </form>
+
+                <div class="text-center mt-3">
+                    <a href="<?= BASE_URL ?>auth/password-dimenticata" class="small text-decoration-none">
+                        <i class="fas fa-key me-1"></i>Password dimenticata?
+                    </a>
+                </div>
             </div>
         </div>
     </div>
