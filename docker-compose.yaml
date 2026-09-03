@@ -71,6 +71,13 @@ services:
       - MYSQL_USER=${DB_USER:-artemisys}
       - MYSQL_PASSWORD=${DB_PASSWORD}
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+    ports:
+      # Solo il loopback dell'host: MySQL NON viene esposto su Internet.
+      # Serve per collegarsi con un client desktop (HeidiSQL/DBeaver)
+      # attraverso un tunnel SSH.
+      # ATTENZIONE: togliendo "127.0.0.1:" Docker scrive da solo le regole
+      # iptables e apre la 3306 a tutta la rete, scavalcando il firewall.
+      - "127.0.0.1:3306:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
