@@ -386,6 +386,15 @@ class StudenteController {
         $disponibili   = $this->documentiDisponibili();
         $etichette     = StudenteDocumento::ETICHETTE;
 
+        // Tab iniziale: se la querystring la impone la si rispetta (è così che
+        // si torna su "I miei documenti" dopo un caricamento), altrimenti si
+        // apre quella che ha contenuto. Senza documenti disponibili si parte
+        // da "I miei documenti", dove sta il form di caricamento.
+        $tabAttiva = $_GET['tab'] ?? '';
+        if ($tabAttiva !== 'disponibili' && $tabAttiva !== 'miei') {
+            $tabAttiva = !empty($disponibili) ? 'disponibili' : 'miei';
+        }
+
         require BASE_PATH . 'views/studente/_header.php';
         require BASE_PATH . 'views/studente/documenti.php';
         require BASE_PATH . 'views/studente/_footer.php';
@@ -459,7 +468,8 @@ class StudenteController {
     public function documentiUpload(): void {
         $this->guard();
         $studenteId = (int)$this->studente['id'];
-        $redirect   = BASE_URL . 'studente/documenti';
+        // Torna sulla tab dei propri documenti, dove si vede l'esito
+        $redirect   = BASE_URL . 'studente/documenti?tab=miei';
 
         require_once BASE_PATH . 'models/StudenteDocumento.php';
         $docModel = new StudenteDocumento();
@@ -525,7 +535,7 @@ class StudenteController {
     public function documentiDelete(): void {
         $this->guard();
         $id       = (int)($_POST['documento_id'] ?? 0);
-        $redirect = BASE_URL . 'studente/documenti';
+        $redirect = BASE_URL . 'studente/documenti?tab=miei';
 
         require_once BASE_PATH . 'models/StudenteDocumento.php';
         $docModel = new StudenteDocumento();
@@ -552,7 +562,7 @@ class StudenteController {
     /** Download di un documento personale: servito da PHP, mai da URL pubblico. */
     public function documento(int $id): void {
         $this->guard();
-        $redirect = BASE_URL . 'studente/documenti';
+        $redirect = BASE_URL . 'studente/documenti?tab=miei';
 
         require_once BASE_PATH . 'models/StudenteDocumento.php';
         $docModel = new StudenteDocumento();

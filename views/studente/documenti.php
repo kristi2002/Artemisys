@@ -17,16 +17,18 @@ $icoDoc = function (string $nome): string {
 <!-- ===== TAB ===== -->
 <ul class="nav nav-pills mb-3" id="tabDocumenti" role="tablist" style="gap:8px;">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-disponibili-btn" data-bs-toggle="pill"
-                data-bs-target="#tab-disponibili" type="button" role="tab"
+        <button class="nav-link<?= $tabAttiva === 'disponibili' ? ' active' : '' ?>" id="tab-disponibili-btn"
+                data-bs-toggle="pill" data-bs-target="#tab-disponibili" type="button" role="tab"
+                aria-selected="<?= $tabAttiva === 'disponibili' ? 'true' : 'false' ?>"
                 style="border-radius:10px;font-size:.82rem;font-weight:600;padding:8px 14px;">
             <i class="fas fa-download me-1"></i>Disponibili
             <?php if (!empty($disponibili)): ?><span class="ms-1">(<?= count($disponibili) ?>)</span><?php endif; ?>
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-miei-btn" data-bs-toggle="pill"
-                data-bs-target="#tab-miei" type="button" role="tab"
+        <button class="nav-link<?= $tabAttiva === 'miei' ? ' active' : '' ?>" id="tab-miei-btn"
+                data-bs-toggle="pill" data-bs-target="#tab-miei" type="button" role="tab"
+                aria-selected="<?= $tabAttiva === 'miei' ? 'true' : 'false' ?>"
                 style="border-radius:10px;font-size:.82rem;font-weight:600;padding:8px 14px;">
             <i class="fas fa-folder me-1"></i>I miei documenti
             <?php if (!empty($mieiDocumenti)): ?><span class="ms-1">(<?= count($mieiDocumenti) ?>)</span><?php endif; ?>
@@ -37,7 +39,7 @@ $icoDoc = function (string $nome): string {
 <div class="tab-content">
 
     <!-- ===== DOCUMENTI DISPONIBILI ===== -->
-    <div class="tab-pane fade show active" id="tab-disponibili" role="tabpanel">
+    <div class="tab-pane fade<?= $tabAttiva === 'disponibili' ? ' show active' : '' ?>" id="tab-disponibili" role="tabpanel">
         <?php if (empty($disponibili)): ?>
         <div class="stu-card">
             <div class="empty-stu">
@@ -87,7 +89,7 @@ $icoDoc = function (string $nome): string {
     </div>
 
     <!-- ===== I MIEI DOCUMENTI ===== -->
-    <div class="tab-pane fade" id="tab-miei" role="tabpanel">
+    <div class="tab-pane fade<?= $tabAttiva === 'miei' ? ' show active' : '' ?>" id="tab-miei" role="tabpanel">
 
         <!-- Caricamento -->
         <div class="stu-card">
