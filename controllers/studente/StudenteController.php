@@ -312,4 +312,296 @@ class StudenteController {
         require BASE_PATH . 'views/studente/profilo.php';
         require BASE_PATH . 'views/studente/_footer.php';
     }
+
+    // ── Dettaglio lezione ────────────────────────────────────────────────────
+    public function lezione(int $id): void {
+        $this->guard();
+        $studente = $this->studente;
+
+        // Lo studente può aprire solo le lezioni degli anni a cui è iscritto:
+        // la sottoquery su studente_anni è il controllo di proprietà.
+        $stmt = $this->db->prepare("
+            SELECT l.*, m.nome AS materia_nome, m.codice AS materia_codice,
+                   p.nome AS percorso_nome, pa.numero AS anno_numero,
+                   lp.presente AS mia_presenza, lp.note AS nota_presenza
+            FROM lezioni l
+            JOIN percorso_anno_materie pam ON pam.id = l.percorso_anno_materia_id
+            JOIN materie m                 ON m.id  = pam.materia_id
+            JOIN percorso_anni pa          ON pa.id = pam.anno_id
+            JOIN percorsi_accademici p     ON p.id  = pa.percorso_id
+            LEFT JOIN lezione_presenze lp  ON lp.lezione_id = l.id AND lp.studente_id = ?
+            WHERE l.id = ?
+              AND pam.anno_id IN (
+                  SELECT percorso_anno_id FROM studente_anni WHERE studente_id = ?
+              )
+            LIMIT 1
+        ");
+        // Ordine dei placeholder: presenze, id lezione, controllo di proprietà
+        $stmt->execute([$studente['id'], $id, $studente['id']]);
+        $lezione = $stmt->fetch();
+
+        if (!$lezione) {
+            $_SESSION['flash_error'] = 'Lezione non disponibile.';
+            header('Location: ' . BASE_URL . 'studente/lezioni'); exit;
+        }
+
+        $page      = 'studente-lezioni';
+        $pageTitle = $lezione['titolo'];
+
+        $stmt = $this->db->prepare("
+            SELECT i.nome, i.cognome
+            FROM lezione_insegnanti li
+            JOIN insegnanti i ON i.id = li.insegnante_id
+            WHERE li.lezione_id = ?
+            ORDER BY i.cognome ASC, i.nome ASC
+        ");
+        $stmt->execute([$id]);
+        $docenti = $stmt->fetchAll();
+
+        $stmt = $this->db->prepare("
+            SELECT * FROM lezione_allegati
+            WHERE lezione_id = ?
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([$id]);
+        $allegati = $stmt->fetchAll();
+
+        require BASE_PATH . 'views/studente/_header.php';
+        require BASE_PATH . 'views/studente/lezione_detail.php';
+        require BASE_PATH . 'views/studente/_footer.php';
+    }
+
+    // ── Documenti ────────────────────────────────────────────────────────────
+    public function documenti(): void {
+        $this->guard();
+        $page      = 'studente-documenti';
+        $pageTitle = 'Documenti';
+        $studente  = $this->studente;
+
+        require_once BASE_PATH . 'models/StudenteDocumento.php';
+        $docModel = new StudenteDocumento();
+        $docModel->createTables();
+
+        $mieiDocumenti = $docModel->getByStudente((int)$studente['id']);
+        $disponibili   = $this->documentiDisponibili();
+        $etichette     = StudenteDocumento::ETICHETTE;
+
+        require BASE_PATH . 'views/studente/_header.php';
+        require BASE_PATH . 'views/studente/documenti.php';
+        require BASE_PATH . 'views/studente/_footer.php';
+    }
+
+    /**
+     * Documenti che la scuola mette a disposizione dello studente:
+     * materiale delle lezioni dei suoi anni + allegati del suo stage.
+     */
+    private function documentiDisponibili(): array {
+        $studenteId = (int)$this->studente['id'];
+        $docs = [];
+
+        $stmt = $this->db->prepare("
+            SELECT la.id, la.original_name, la.filename, la.created_at,
+                   l.id AS lezione_id, l.titolo AS lezione_titolo,
+                   m.nome AS materia_nome
+            FROM lezione_allegati la
+            JOIN lezioni l                 ON l.id  = la.lezione_id
+            JOIN percorso_anno_materie pam ON pam.id = l.percorso_anno_materia_id
+            JOIN materie m                 ON m.id  = pam.materia_id
+            WHERE pam.anno_id IN (
+                SELECT percorso_anno_id FROM studente_anni WHERE studente_id = ?
+            )
+            ORDER BY la.created_at DESC
+        ");
+        $stmt->execute([$studenteId]);
+        foreach ($stmt->fetchAll() as $r) {
+            $docs[] = [
+                'fonte'         => 'lezione',
+                'etichetta'     => 'Materiale didattico',
+                'titolo'        => $r['lezione_titolo'],
+                'contesto'      => $r['materia_nome'],
+                'original_name' => $r['original_name'],
+                'url'           => ASSETS_URL . 'public/uploads/lezioni/' . rawurlencode($r['filename']),
+                'vai_a'         => BASE_URL . 'studente/lezione/' . (int)$r['lezione_id'],
+                'created_at'    => $r['created_at'],
+            ];
+        }
+
+        // Lo stage può non essere mai stato aperto dalla segreteria
+        require_once BASE_PATH . 'models/Stage.php';
+        (new Stage())->createTables();
+
+        $stmt = $this->db->prepare("
+            SELECT sal.id, sal.original_name, sal.filename, sal.categoria, sal.created_at,
+                   st.azienda
+            FROM stage_allegati sal
+            JOIN stage st ON st.id = sal.stage_id
+            WHERE st.studente_id = ?
+            ORDER BY sal.created_at DESC
+        ");
+        $stmt->execute([$studenteId]);
+        foreach ($stmt->fetchAll() as $r) {
+            $docs[] = [
+                'fonte'         => 'stage',
+                'etichetta'     => ucfirst($r['categoria']),
+                'titolo'        => 'Stage · ' . $r['azienda'],
+                'contesto'      => 'Documento di stage',
+                'original_name' => $r['original_name'],
+                'url'           => ASSETS_URL . 'public/uploads/stage/' . rawurlencode($r['filename']),
+                'vai_a'         => BASE_URL . 'studente/stage',
+                'created_at'    => $r['created_at'],
+            ];
+        }
+
+        usort($docs, fn($a, $b) => strcmp((string)$b['created_at'], (string)$a['created_at']));
+        return $docs;
+    }
+
+    public function documentiUpload(): void {
+        $this->guard();
+        $studenteId = (int)$this->studente['id'];
+        $redirect   = BASE_URL . 'studente/documenti';
+
+        require_once BASE_PATH . 'models/StudenteDocumento.php';
+        $docModel = new StudenteDocumento();
+        $docModel->createTables();
+
+        $etichetta = trim($_POST['etichetta'] ?? 'altro');
+        if (!array_key_exists($etichetta, StudenteDocumento::ETICHETTE)) $etichetta = 'altro';
+
+        $etichettaAltro = $etichetta === 'altro' ? trim($_POST['etichetta_altro'] ?? '') : '';
+        $descrizione    = trim($_POST['descrizione'] ?? '');
+
+        if (empty($_FILES['documento']['name'])) {
+            $_SESSION['flash_error'] = 'Nessun file selezionato.';
+            header('Location: ' . $redirect); exit;
+        }
+        if (($_FILES['documento']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            $_SESSION['flash_error'] = 'Caricamento non riuscito. Riprova.';
+            header('Location: ' . $redirect); exit;
+        }
+
+        $allowed = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg', 'image/png',
+        ];
+
+        $mime         = mime_content_type($_FILES['documento']['tmp_name']);
+        $originalName = basename($_FILES['documento']['name']);
+        $ext          = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+        if (!in_array($mime, $allowed, true) || !in_array($ext, ['pdf','doc','docx','jpg','jpeg','png'], true)) {
+            $_SESSION['flash_error'] = 'Formato non consentito. Usa PDF, DOC, DOCX, JPG o PNG.';
+            header('Location: ' . $redirect); exit;
+        }
+        if ($_FILES['documento']['size'] > 10 * 1024 * 1024) {
+            $_SESSION['flash_error'] = 'File troppo grande (max 10 MB).';
+            header('Location: ' . $redirect); exit;
+        }
+
+        $uploadDir = StudenteDocumento::uploadDir();
+
+        $filename = uniqid('studoc_', true) . '.' . $ext;
+        if (!move_uploaded_file($_FILES['documento']['tmp_name'], $uploadDir . $filename)) {
+            $_SESSION['flash_error'] = 'Salvataggio del file non riuscito.';
+            header('Location: ' . $redirect); exit;
+        }
+
+        $docModel->create(
+            $studenteId,
+            $etichetta,
+            $etichettaAltro !== '' ? $etichettaAltro : null,
+            $descrizione    !== '' ? $descrizione    : null,
+            $filename,
+            $originalName,
+            $mime
+        );
+
+        $_SESSION['flash_success'] = 'Documento caricato.';
+        header('Location: ' . $redirect); exit;
+    }
+
+    public function documentiDelete(): void {
+        $this->guard();
+        $id       = (int)($_POST['documento_id'] ?? 0);
+        $redirect = BASE_URL . 'studente/documenti';
+
+        require_once BASE_PATH . 'models/StudenteDocumento.php';
+        $docModel = new StudenteDocumento();
+        $docModel->createTables();
+
+        $doc = $id > 0 ? $docModel->findById($id) : false;
+
+        // Solo i propri documenti, e solo quelli caricati dallo studente stesso
+        if (!$doc
+            || (int)$doc['studente_id'] !== (int)$this->studente['id']
+            || $doc['caricato_da'] !== 'studente') {
+            $_SESSION['flash_error'] = 'Documento non eliminabile.';
+            header('Location: ' . $redirect); exit;
+        }
+
+        $path = StudenteDocumento::uploadDir() . basename($doc['filename']);
+        if (is_file($path)) unlink($path);
+        $docModel->delete($id);
+
+        $_SESSION['flash_success'] = 'Documento eliminato.';
+        header('Location: ' . $redirect); exit;
+    }
+
+    /** Download di un documento personale: servito da PHP, mai da URL pubblico. */
+    public function documento(int $id): void {
+        $this->guard();
+        $redirect = BASE_URL . 'studente/documenti';
+
+        require_once BASE_PATH . 'models/StudenteDocumento.php';
+        $docModel = new StudenteDocumento();
+        $docModel->createTables();
+
+        $doc = $docModel->findById($id);
+        if (!$doc || (int)$doc['studente_id'] !== (int)$this->studente['id']) {
+            $_SESSION['flash_error'] = 'Documento non disponibile.';
+            header('Location: ' . $redirect); exit;
+        }
+
+        $path = StudenteDocumento::uploadDir() . basename($doc['filename']);
+        if (!is_file($path)) {
+            $_SESSION['flash_error'] = 'File non trovato.';
+            header('Location: ' . $redirect); exit;
+        }
+
+        $nome = str_replace(['"', "\r", "\n"], '', $doc['original_name']);
+        header('Content-Type: ' . ($doc['mime_type'] ?: 'application/octet-stream'));
+        header('Content-Disposition: attachment; filename="' . $nome . '"');
+        header('Content-Length: ' . filesize($path));
+        header('X-Content-Type-Options: nosniff');
+        readfile($path);
+        exit;
+    }
+
+    // ── Stage ────────────────────────────────────────────────────────────────
+    public function stage(): void {
+        $this->guard();
+        $page      = 'studente-stage';
+        $pageTitle = 'Il mio stage';
+        $studente  = $this->studente;
+
+        require_once BASE_PATH . 'models/Stage.php';
+        $stageModel = new Stage();
+        $stageModel->createTables();
+
+        $stmt = $this->db->prepare("
+            SELECT * FROM stage
+            WHERE studente_id = ?
+            ORDER BY id DESC LIMIT 1
+        ");
+        $stmt->execute([$studente['id']]);
+        $stage = $stmt->fetch();
+
+        $allegati = $stage ? $stageModel->getAllegati((int)$stage['id']) : [];
+
+        require BASE_PATH . 'views/studente/_header.php';
+        require BASE_PATH . 'views/studente/stage.php';
+        require BASE_PATH . 'views/studente/_footer.php';
+    }
 }

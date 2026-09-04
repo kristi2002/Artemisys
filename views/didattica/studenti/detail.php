@@ -730,6 +730,174 @@ foreach ($blocchiCorsi as $blocco):
 </div>
 <?php endforeach; ?>
 
+<!-- ════ DOCUMENTI PERSONALI ══════════════════════════════════════════════ -->
+<?php
+$icoDocAdmin = function (string $nome): string {
+    return match (strtolower(pathinfo($nome, PATHINFO_EXTENSION))) {
+        'pdf'                => 'fa-file-pdf',
+        'doc', 'docx'        => 'fa-file-word',
+        'jpg', 'jpeg', 'png' => 'fa-file-image',
+        default              => 'fa-file-lines',
+    };
+};
+$daStudente = array_filter($documenti, fn($d) => $d['caricato_da'] === 'studente');
+?>
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <h6 class="mb-0 fw-semibold" style="color:#0c1a3a;">
+            <i class="fas fa-folder-open me-2" style="color:#1e40af;"></i>
+            Documenti personali
+            <?php if (!empty($documenti)): ?>
+                <span class="badge ms-1" style="background:#e8eef8;color:#1e40af;"><?= count($documenti) ?></span>
+            <?php endif; ?>
+            <?php if (!empty($daStudente)): ?>
+                <span class="text-muted fw-normal small ms-1">
+                    · <?= count($daStudente) ?> caricat<?= count($daStudente) === 1 ? 'o' : 'i' ?> dallo studente
+                </span>
+            <?php endif; ?>
+        </h6>
+        <button type="button" class="btn btn-sm btn-primary"
+                data-bs-toggle="modal" data-bs-target="#modalUploadDocumento">
+            <i class="fas fa-upload me-1"></i>Carica documento
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <?php if (empty($documenti)): ?>
+            <p class="text-muted small fst-italic px-4 py-3 mb-0">Nessun documento caricato.</p>
+        <?php else: ?>
+        <table class="table table-hover mb-0">
+            <thead style="background:#f8fafc;">
+                <tr>
+                    <th class="ps-4">File</th>
+                    <th style="width:190px;">Etichetta</th>
+                    <th>Descrizione</th>
+                    <th style="width:130px;">Caricato da</th>
+                    <th style="width:110px;">Data</th>
+                    <th class="text-end pe-4" style="width:120px;">Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($documenti as $doc): ?>
+                    <tr>
+                        <td class="ps-4 align-middle">
+                            <i class="fas <?= $icoDocAdmin($doc['original_name']) ?> me-2" style="color:#1e40af;"></i>
+                            <span class="fw-semibold" style="color:#0c1a3a;">
+                                <?= htmlspecialchars($doc['original_name']) ?>
+                            </span>
+                        </td>
+                        <td class="align-middle">
+                            <span class="badge" style="background:#e8eef8;color:#1e40af;font-weight:700;">
+                                <?= htmlspecialchars(StudenteDocumento::labelOf($doc)) ?>
+                            </span>
+                        </td>
+                        <td class="align-middle text-muted small">
+                            <?= !empty($doc['descrizione']) ? htmlspecialchars($doc['descrizione']) : '—' ?>
+                        </td>
+                        <td class="align-middle">
+                            <?php if ($doc['caricato_da'] === 'studente'): ?>
+                                <span class="badge" style="background:#dcfce7;color:#166534;font-weight:600;">
+                                    <i class="fas fa-user-graduate me-1"></i>Studente
+                                </span>
+                            <?php else: ?>
+                                <span class="badge" style="background:#f1f5f9;color:#475569;font-weight:600;">
+                                    <i class="fas fa-building-columns me-1"></i>Segreteria
+                                </span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="align-middle text-muted small">
+                            <?= date('d/m/Y', strtotime($doc['created_at'])) ?>
+                        </td>
+                        <td class="text-end pe-4 align-middle">
+                            <a href="<?= BASE_URL ?>studenti/documento/<?= (int)$doc['id'] ?>"
+                               class="btn btn-sm btn-outline-primary" title="Scarica">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            <form method="POST" action="<?= BASE_URL ?>studenti/delete-documento" class="d-inline"
+                                  onsubmit="return confirm('Eliminare definitivamente questo documento?');">
+                                <input type="hidden" name="documento_id" value="<?= (int)$doc['id'] ?>">
+                                <input type="hidden" name="studente_id"  value="<?= (int)$studente['id'] ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Elimina">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- ════ Modal CARICA DOCUMENTO ═══════════════════════════════════════════ -->
+<div class="modal fade" id="modalUploadDocumento" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="<?= BASE_URL ?>studenti/upload-documento" enctype="multipart/form-data">
+                <input type="hidden" name="studente_id" value="<?= (int)$studente['id'] ?>">
+
+                <div class="modal-header border-bottom py-3 px-4" style="background:#f8fafc;">
+                    <h6 class="modal-title fw-semibold mb-0" style="color:#0c1a3a;">
+                        <i class="fas fa-upload me-2" style="color:#1e40af;"></i>
+                        Carica documento — <?= htmlspecialchars($studente['cognome'] . ' ' . $studente['nome']) ?>
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body px-4 py-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">File</label>
+                        <input type="file" name="documento" class="form-control" required
+                               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                        <div class="form-text">PDF, DOC, DOCX, JPG o PNG · max 10 MB</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Etichetta</label>
+                        <select name="etichetta" id="selEtichettaAdmin" class="form-select">
+                            <?php foreach ($etichetteDoc as $k => $label): ?>
+                                <option value="<?= htmlspecialchars($k) ?>"><?= htmlspecialchars($label) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="boxEtichettaAltroAdmin" style="display:none;">
+                        <label class="form-label fw-semibold small">Specifica l'etichetta</label>
+                        <input type="text" name="etichetta_altro" maxlength="100" class="form-control"
+                               placeholder="Es. Certificato di residenza">
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold small">
+                            Descrizione <span class="text-muted fw-normal">(facoltativa)</span>
+                        </label>
+                        <input type="text" name="descrizione" maxlength="255" class="form-control"
+                               placeholder="Una breve nota">
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top py-3 px-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i>Carica
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var sel = document.getElementById('selEtichettaAdmin');
+    var box = document.getElementById('boxEtichettaAltroAdmin');
+    if (!sel || !box) return;
+    function toggle() { box.style.display = sel.value === 'altro' ? '' : 'none'; }
+    sel.addEventListener('change', toggle);
+    toggle();
+})();
+</script>
+
 <!-- ════ Modal SCARICA PAGELLA ════════════════════════════════════════════ -->
 <div class="modal fade" id="modalScaricaPagella" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

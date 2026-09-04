@@ -125,11 +125,17 @@ switch ($controller) {
         require_once BASE_PATH . 'controllers/studente/StudenteController.php';
         $ctrl = new StudenteController();
         if ($action === 'lezioni')        $ctrl->lezioni();
+        elseif ($action === 'lezione' && $param)   $ctrl->lezione((int)$param);
         elseif ($action === 'voti')       $ctrl->voti();
         elseif ($action === 'presenze')   $ctrl->presenze();
         elseif ($action === 'eventi')     $ctrl->eventi();
         elseif ($action === 'iscriviti')  $ctrl->iscriviti();
         elseif ($action === 'rette')      $ctrl->rette();
+        elseif ($action === 'stage')      $ctrl->stage();
+        elseif ($action === 'documenti')  $ctrl->documenti();
+        elseif ($action === 'documenti-upload')    $ctrl->documentiUpload();
+        elseif ($action === 'documenti-delete')    $ctrl->documentiDelete();
+        elseif ($action === 'documento' && $param) $ctrl->documento((int)$param);
         elseif ($action === 'profilo')    $ctrl->profilo();
         else                              $ctrl->home();
         break;
@@ -215,6 +221,9 @@ switch ($controller) {
         elseif ($action === 'pagella' && $param)    $ctrl->pagella((int)$param);
         elseif ($action === 'download-scheda-allievo') $ctrl->downloadSchedaAllievo();
         elseif ($action === 'scarica-pagella')          $ctrl->scaricaPagella();
+        elseif ($action === 'documento' && $param)  $ctrl->documento((int)$param);
+        elseif ($action === 'upload-documento')     $ctrl->uploadDocumento();
+        elseif ($action === 'delete-documento')     $ctrl->deleteDocumento();
         elseif ($action === 'update')               $ctrl->update();
         elseif ($action === 'set-iscrizione')       $ctrl->setIscrizione();
         elseif ($action === 'add-iscrizione')       $ctrl->addIscrizione();

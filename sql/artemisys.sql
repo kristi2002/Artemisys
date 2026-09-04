@@ -491,4 +491,22 @@ CREATE TABLE IF NOT EXISTS diplomi_template (
     updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- ── 29. Documenti personali dello studente ───────────────────────────────────
+-- I file stanno in uploads/studenti/ (fuori da public/) e si scaricano solo
+-- da index.php/studente/documento/{id}.
+CREATE TABLE IF NOT EXISTS studente_documenti (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    studente_id     INT NOT NULL,
+    etichetta       ENUM('identita','codice_fiscale','certificato_medico','titolo_studio','cv','altro')
+                    NOT NULL DEFAULT 'altro',
+    etichetta_altro VARCHAR(100) NULL,
+    descrizione     VARCHAR(255) NULL,
+    filename        VARCHAR(255) NOT NULL,
+    original_name   VARCHAR(255) NOT NULL,
+    mime_type       VARCHAR(100) NULL,
+    caricato_da     ENUM('studente','segreteria') NOT NULL DEFAULT 'studente',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_stud_doc_studente (studente_id)
+) ENGINE=InnoDB;
+
 SET FOREIGN_KEY_CHECKS = 1;

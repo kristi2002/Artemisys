@@ -4,6 +4,7 @@ require_once BASE_PATH . 'models/Studente.php';
 require_once BASE_PATH . 'models/Percorso.php';
 require_once BASE_PATH . 'models/Materia.php';
 require_once BASE_PATH . 'models/AnnoScolastico.php';
+require_once BASE_PATH . 'models/StudenteDocumento.php';
 
 class StudentiController {
 
@@ -11,13 +12,16 @@ class StudentiController {
     private Percorso $percorsoModel;
     private Materia  $materiaModel;
     private AnnoScolastico $annoModel;
+    private StudenteDocumento $documentoModel;
 
     public function __construct() {
-        $this->model         = new Studente();
-        $this->percorsoModel = new Percorso();
-        $this->materiaModel  = new Materia();
-        $this->annoModel     = new AnnoScolastico();
+        $this->model          = new Studente();
+        $this->percorsoModel  = new Percorso();
+        $this->materiaModel   = new Materia();
+        $this->annoModel      = new AnnoScolastico();
+        $this->documentoModel = new StudenteDocumento();
         $this->model->createTables();
+        $this->documentoModel->createTables();
     }
 
     public function index(): void {
@@ -141,6 +145,10 @@ class StudentiController {
         foreach ($blocchiCorsi as $b) {
             $anniPerPercorso[$b['iscrizione']['percorso_id']] = $b['anniPercorso'];
         }
+
+        // Documenti personali (caricati dallo studente o dalla segreteria)
+        $documenti    = $this->documentoModel->getByStudente($id);
+        $etichetteDoc = StudenteDocumento::ETICHETTE;
 
         $success = $_SESSION['flash_success'] ?? null;
         $error   = $_SESSION['flash_error']   ?? null;
@@ -776,6 +784,120 @@ class StudentiController {
             $_SESSION['flash_success'] = 'Materia bonus rimossa.';
         }
         header('Location: ' . BASE_URL . 'studenti/detail/' . $studenteId);
+        exit;
+    }
+
+    // ── Documenti personali dello studente ───────────────────────────────────
+
+    public function uploadDocumento(): void {
+        $studenteId = (int)($_POST['studente_id'] ?? 0);
+        if ($studenteId <= 0) {
+            header('Location: ' . BASE_URL . 'studenti'); exit;
+        }
+        $redirect = BASE_URL . 'studenti/detail/' . $studenteId;
+
+        $etichetta = trim($_POST['etichetta'] ?? 'altro');
+        if (!array_key_exists($etichetta, StudenteDocumento::ETICHETTE)) $etichetta = 'altro';
+
+        $etichettaAltro = $etichetta === 'altro' ? trim($_POST['etichetta_altro'] ?? '') : '';
+        $descrizione    = trim($_POST['descrizione'] ?? '');
+
+        if (empty($_FILES['documento']['name'])) {
+            $_SESSION['flash_error'] = 'Nessun file selezionato.';
+            header('Location: ' . $redirect); exit;
+        }
+        if (($_FILES['documento']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            $_SESSION['flash_error'] = 'Caricamento non riuscito. Riprova.';
+            header('Location: ' . $redirect); exit;
+        }
+
+        $allowed = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg', 'image/png',
+        ];
+
+        $mime         = mime_content_type($_FILES['documento']['tmp_name']);
+        $originalName = basename($_FILES['documento']['name']);
+        $ext          = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+        if (!in_array($mime, $allowed, true) || !in_array($ext, ['pdf','doc','docx','jpg','jpeg','png'], true)) {
+            $_SESSION['flash_error'] = 'Formato non consentito. Usa PDF, DOC, DOCX, JPG o PNG.';
+            header('Location: ' . $redirect); exit;
+        }
+        if ($_FILES['documento']['size'] > 10 * 1024 * 1024) {
+            $_SESSION['flash_error'] = 'File troppo grande (max 10 MB).';
+            header('Location: ' . $redirect); exit;
+        }
+
+        $uploadDir = StudenteDocumento::uploadDir();
+        $filename  = uniqid('studoc_', true) . '.' . $ext;
+
+        if (!move_uploaded_file($_FILES['documento']['tmp_name'], $uploadDir . $filename)) {
+            $_SESSION['flash_error'] = 'Salvataggio del file non riuscito.';
+            header('Location: ' . $redirect); exit;
+        }
+
+        $this->documentoModel->create(
+            $studenteId,
+            $etichetta,
+            $etichettaAltro !== '' ? $etichettaAltro : null,
+            $descrizione    !== '' ? $descrizione    : null,
+            $filename,
+            $originalName,
+            $mime,
+            'segreteria'
+        );
+
+        $_SESSION['flash_success'] = 'Documento caricato.';
+        header('Location: ' . $redirect); exit;
+    }
+
+    public function deleteDocumento(): void {
+        $id         = (int)($_POST['documento_id'] ?? 0);
+        $studenteId = (int)($_POST['studente_id']  ?? 0);
+        $redirect   = $studenteId > 0
+            ? BASE_URL . 'studenti/detail/' . $studenteId
+            : BASE_URL . 'studenti';
+
+        $doc = $id > 0 ? $this->documentoModel->findById($id) : false;
+
+        // La segreteria può togliere qualsiasi documento, anche caricato dallo
+        // studente, ma solo dalla scheda dello studente a cui appartiene.
+        if (!$doc || ($studenteId > 0 && (int)$doc['studente_id'] !== $studenteId)) {
+            $_SESSION['flash_error'] = 'Documento non trovato.';
+            header('Location: ' . $redirect); exit;
+        }
+
+        $path = StudenteDocumento::uploadDir() . basename($doc['filename']);
+        if (is_file($path)) unlink($path);
+        $this->documentoModel->delete($id);
+
+        $_SESSION['flash_success'] = 'Documento eliminato.';
+        header('Location: ' . $redirect); exit;
+    }
+
+    /** Download lato segreteria: i file non sono raggiungibili via URL diretto. */
+    public function documento(int $id): void {
+        $doc = $this->documentoModel->findById($id);
+        if (!$doc) {
+            $_SESSION['flash_error'] = 'Documento non trovato.';
+            header('Location: ' . BASE_URL . 'studenti'); exit;
+        }
+
+        $path = StudenteDocumento::uploadDir() . basename($doc['filename']);
+        if (!is_file($path)) {
+            $_SESSION['flash_error'] = 'File non trovato.';
+            header('Location: ' . BASE_URL . 'studenti/detail/' . (int)$doc['studente_id']); exit;
+        }
+
+        $nome = str_replace(['"', "\r", "\n"], '', $doc['original_name']);
+        header('Content-Type: ' . ($doc['mime_type'] ?: 'application/octet-stream'));
+        header('Content-Disposition: attachment; filename="' . $nome . '"');
+        header('Content-Length: ' . filesize($path));
+        header('X-Content-Type-Options: nosniff');
+        readfile($path);
         exit;
     }
 }

@@ -30,7 +30,7 @@ index.php  →  parse PATH_INFO  →  auth/role guards  →  switch($controller)
 | `home` (admin dashboard) | [didattica/DashboardController](controllers/didattica/DashboardController.php) | `views/didattica/dashboard/index.php` | several |
 | `bacheca` | [BachecaController](controllers/BachecaController.php) | `views/bacheca/*` **and** `views/studente/bacheca*.php` | Comunicazione |
 | `insegnanti` | [didattica/InsegnantiController](controllers/didattica/InsegnantiController.php) | `views/didattica/insegnanti/{index,create,detail}.php` | Insegnante |
-| `studenti` | [didattica/StudentiController](controllers/didattica/StudentiController.php) | `views/didattica/studenti/{index,create,detail,pagella}.php` | Studente |
+| `studenti` | [didattica/StudentiController](controllers/didattica/StudentiController.php) | `views/didattica/studenti/{index,create,detail,pagella}.php` | Studente, StudenteDocumento |
 | `percorsi` | [didattica/PercorsiController](controllers/didattica/PercorsiController.php) | `views/didattica/percorsi/{index,create,detail,anno,materia,lezione}.php` | Percorso, Lezione |
 | `anno-scolastico` | [didattica/AnnoScolasticoController](controllers/didattica/AnnoScolasticoController.php) | `views/didattica/anno-scolastico/index.php` | AnnoScolastico |
 | `materie` | [didattica/MaterieController](controllers/didattica/MaterieController.php) | `views/didattica/materie/index.php` | Materia |
@@ -48,7 +48,7 @@ index.php  →  parse PATH_INFO  →  auth/role guards  →  switch($controller)
 | `importazioni` | [didattica/ImportazioniController](controllers/didattica/ImportazioniController.php) | `views/didattica/importazioni/index.php` | Lezione |
 | `prove-orari` | [didattica/ProveOrariController](controllers/didattica/ProveOrariController.php) | `views/didattica/prove-orari/index.php` | EsameDiStato |
 | `mie-lezioni`, `mie-materie`, `mio-calendario`, `miei-esami`, `profilo` | [docente/DocenteController](controllers/docente/DocenteController.php) | `views/docente/*` (`miei-esami` reuses `views/didattica/esami/index.php`) | Lezione, Esame |
-| `studente[/lezioni,voti,presenze,eventi,rette,profilo,iscriviti]` | [studente/StudenteController](controllers/studente/StudenteController.php) | `views/studente/*` | Studente, Lezione, Evento, Retta |
+| `studente[/lezioni,lezione/{id},voti,presenze,eventi,rette,stage,documenti,documento/{id},profilo,iscriviti]` | [studente/StudenteController](controllers/studente/StudenteController.php) | `views/studente/*` | Studente, Lezione, Evento, Retta, Stage, StudenteDocumento |
 
 **Not routed:** [EsamiDiStatoController](controllers/didattica/EsamiDiStatoController.php) is orphaned — `esami-di-stato` has no `case` in index.php. The live one is `esami-di-stato-prova`.
 
@@ -95,7 +95,7 @@ index.php  →  parse PATH_INFO  →  auth/role guards  →  switch($controller)
 - `createTable()` / `createTables()` → `CREATE TABLE IF NOT EXISTS`
 - Additive migrations → `try { $db->exec("ALTER TABLE … ADD COLUMN …"); } catch (Exception $e) {}`
 
-**To add a column: add the `ALTER TABLE` line to the model's `createTables()`, and update `sql/artemisys.sql` for the record.** Migrations not in the dump include: `lezioni.ora_inizio/ora_fine/argomento/online/link_online` ([Lezione.php:61](models/Lezione.php:61)), `percorso_anno_materie.insegnante_id`, `studenti.user_id`, `password_resets`, `sedi`, `commissione_esami_prova`, `percorso_anni.codice`.
+**To add a column: add the `ALTER TABLE` line to the model's `createTables()`, and update `sql/artemisys.sql` for the record.** Migrations not in the dump include: `lezioni.ora_inizio/ora_fine/argomento/online/link_online` ([Lezione.php:61](models/Lezione.php:61)), `percorso_anno_materie.insegnante_id`, `studenti.user_id`, `password_resets`, `sedi`, `commissione_esami_prova`, `percorso_anni.codice`. `studente_documenti` ([StudenteDocumento.php](models/StudenteDocumento.php)) **is** in the dump.
 
 Core tables and how they connect:
 
@@ -135,10 +135,12 @@ When adding an admin route, **also add it to `$bloccatePerDocente`** or teachers
 ## 7. Uploads
 
 Two roots, easy to confuse:
-- `public/uploads/{lezioni,rate,diplomi}` — web-servable, Docker volume.
-- `uploads/{insegnanti,studenti,esami,esami-di-stato,stage}` — served through PHP, Docker volume.
+- `public/uploads/{lezioni,rate,diplomi,stage,esami,esami-di-stato,studenti}` — web-servable, `uploads_public` volume. Linked directly with `ASSETS_URL`.
+- `uploads/{insegnanti,studenti}` — outside `public/`, `uploads_insegnanti` volume (name is historical; it mounts the whole `uploads/` root).
 
-Files are stored under generated names; the original name lives in the `*_allegati` tables (`filename` vs `original_name`).
+**Being outside `public/` does not make a file private.** Both roots sit under the Apache DocumentRoot and the root `.htaccess` only rewrites paths that *don't* exist, so `uploads/…` is served directly unless a directory denies it. Only `uploads/studenti/` is actually protected: [StudenteDocumento::uploadDir()](models/StudenteDocumento.php) writes a `Require all denied` `.htaccess` there at runtime (runtime, not committed — prod's `uploads/` volume predates the file and would never receive it). The files come out only through `studente/documento/{id}` (own documents) or `studenti/documento/{id}` (segreteria). Put anything personal there, not in `public/uploads/`.
+
+Files are stored under generated names; the original name lives in the `*_allegati` tables (`filename` vs `original_name`) — and in `studente_documenti` for student uploads.
 
 ## 8. Known gotchas
 

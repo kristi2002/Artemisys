@@ -148,6 +148,18 @@ $percPresenze = $stats['lezioni_tot'] > 0 ? round($stats['presenze'] / $stats['l
             <div class="fw-bold" style="color:#0c1a3a;font-size:.85rem;">Le mie rette</div>
         </a>
     </div>
+    <div class="col-6">
+        <a href="<?= BASE_URL ?>studente/documenti" class="stu-card stu-card-link text-center mb-0" style="display:block;">
+            <i class="fas fa-folder-open d-block" style="color:#1e40af;font-size:1.4rem;margin-bottom:6px;"></i>
+            <div class="fw-bold" style="color:#0c1a3a;font-size:.85rem;">Documenti</div>
+        </a>
+    </div>
+    <div class="col-6">
+        <a href="<?= BASE_URL ?>studente/stage" class="stu-card stu-card-link text-center mb-0" style="display:block;">
+            <i class="fas fa-briefcase d-block" style="color:#1e40af;font-size:1.4rem;margin-bottom:6px;"></i>
+            <div class="fw-bold" style="color:#0c1a3a;font-size:.85rem;">Il mio stage</div>
+        </a>
+    </div>
 </div>
 
 <a href="<?= BASE_URL ?>studente/profilo" class="stu-card stu-card-link d-flex align-items-center gap-3" style="display:flex;">

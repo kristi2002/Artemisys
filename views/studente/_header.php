@@ -163,6 +163,18 @@ $userName = $_SESSION['user_nome'] ?? $studenteName;
             </a>
         </li>
         <li>
+            <a href="<?= BASE_URL ?>studente/documenti" class="<?= $cur === 'studente-documenti' ? 'active' : '' ?>">
+                <i class="fas fa-folder-open"></i>
+                <span>Documenti</span>
+            </a>
+        </li>
+        <li>
+            <a href="<?= BASE_URL ?>studente/stage" class="<?= $cur === 'studente-stage' ? 'active' : '' ?>">
+                <i class="fas fa-briefcase"></i>
+                <span>Il mio stage</span>
+            </a>
+        </li>
+        <li>
             <a href="<?= BASE_URL ?>bacheca" class="<?= $cur === 'bacheca' ? 'active' : '' ?>">
                 <i class="fas fa-bullhorn"></i>
                 <span>Bacheca</span>
